@@ -25,7 +25,7 @@ INPUT(./uImage)
 INPUT(./filesystem.cpio.gz)
 INPUT(./boot.o)
 
-PHYS_OFFSET = 0x00000000;
+PHYS_OFFSET = 0x70000000;
 
 SECTIONS
 {
