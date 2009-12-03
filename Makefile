@@ -1,29 +1,24 @@
 # Build an ELF linux+filesystem image
 
-BOOTLOADER	= boot.bin
+BOOTLOADER	= boot.S
 KERNEL		= uImage
-FILESYSTEM	= base.cramfs
+FILESYSTEM	= filesystem.cpio.gz
 
 IMAGE		= linux-system.axf
 LD_SCRIPT	= model.lds
 
 CROSS_COMPILE	= arm-none-linux-gnueabi-
 
-CC		= $(CROSS_COMPILE)gcc
 AS		= $(CROSS_COMPILE)as
 LD		= $(CROSS_COMPILE)ld
-OBJCOPY		= $(CROSS_COMPILE)objcopy
 
 all: $(IMAGE)
 
 clean:
-	rm -f $(IMAGE)
+	rm -f $(IMAGE) boot.o
 
-$(IMAGE): $(BOOTLOADER) $(KERNEL) $(FILESYSTEM) $(LD_SCRIPT)
+$(IMAGE): boot.o $(LD_SCRIPT) $(KERNEL) $(FILESYSTEM)
 	$(LD) -o $@ --script=$(LD_SCRIPT)
 
-boot.bin: boot.o
-	$(OBJCOPY) -O binary -S $< $@
-
-boot.o: boot.S
+boot.o: $(BOOTLOADER)
 	$(AS) -o $@ $<
