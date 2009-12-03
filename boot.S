@@ -22,9 +22,31 @@
 	.globl	_start
 _start:
 	@
+	@ CPU initialisation
+	@
+	mrc	p15, 0, r0, c0, c0, 5		@ MPIDR (ARMv7 only)
+	and	r0, r0, #15			@ CPU number
+	cmp	r0, #0				@ primary CPU?
+	beq	2f
+
+	@
+	@ Secondary CPUs (following the RealView SMP booting protocol)
+	@
+	ldr	r1, =filesystem - 0x100
+	adr	r2, 1f
+	ldmia	r2, {r3 - r6}			@ move the code to a location
+	stmia	r1, {r3 - r6}			@ less likely to be overridden
+	ldr	r0, =0x10000030			@ RealView SYS_FLAGS register
+	mov	pc, r1				@ branch to the relocated code
+1:	ldr	r1, [r0]
+	cmp	r1, #0
+	beq	1b
+	mov	pc, r1				@ branch to the given address
+
+	@
 	@ UART initialisation (38400 8N1)
 	@
-	ldr	r0, =0x10009000			@ UART base (RealView/EB)
+2:	ldr	r0, =0x10009000			@ UART base (RealView/EB)
 	mov	r1, #0x10			@ ibrd
 	str	r1, [r0, #0x24]
 	mov	r1, #0xc300

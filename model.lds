@@ -25,18 +25,18 @@ INPUT(./uImage)
 INPUT(./filesystem.cpio.gz)
 INPUT(./boot.o)
 
-PHYS = 0x70000000;
+PHYS_OFFSET = 0x00000000;
 
 SECTIONS
 {
-	. = PHYS;
+	. = PHYS_OFFSET;
 	.text : { boot.o }
 
-	. = PHYS + 0x8000 - 0x40;
+	. = PHYS_OFFSET + 0x8000 - 0x40;
 	kernel = . + 0x40;
 	.kernel : { ./uImage }
 
-	. = PHYS + 0x00800000;
+	. = PHYS_OFFSET + 0x00800000;
 	filesystem = .;
 	.filesystem : { ./filesystem.cpio.gz }
 	fs_size = . - filesystem;
