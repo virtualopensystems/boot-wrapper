@@ -17,6 +17,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
+#define USE_INITRD
+#undef THUMB2_KERNEL
+
 	.text
 
 	.globl	_start
@@ -61,7 +64,9 @@ _start:
 	adr	r2, atags
 	mov	r3, #0
 	ldr	lr, =kernel
-@	orr	lr, lr, #1			@ Thumb-2 kernel
+#ifdef THUMB2_KERNEL
+	orr	lr, lr, #1			@ Thumb-2 kernel
+#endif
 	mov     pc, lr				@ jump to the kernel
 
 	.org	0x100
@@ -73,15 +78,21 @@ atags:
 	@ ATAG_CMDLINE
 	.long	(1f - .) >> 2
 	.long	0x54410009
+#ifdef USE_INITRD
 	.asciz	"console=ttyAMA0 mem=256M earlyprintk"
+#else
+	.asciz	"root=/dev/nfs nfsroot=10.1.68.81:/work/nfsroot ip=dhcp console=ttyAMA0 mem=256M earlyprintk"
+#endif
 	.align	2
 1:
 
+#ifdef USE_INITRD
 	@ ATAG_INITRD2
 	.long	4
 	.long	0x54420005
 	.long	filesystem
 	.long	fs_size
+#endif
 
 	@ ATAG_NONE
 	.long	0
