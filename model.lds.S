@@ -21,9 +21,11 @@ OUTPUT_FORMAT("elf32-littlearm")
 OUTPUT_ARCH(arm)
 TARGET(binary)
 
-INPUT(./uImage)
-INPUT(./filesystem.cpio.gz)
 INPUT(./boot.o)
+INPUT(./uImage)
+#ifdef USE_INITRD
+INPUT(./filesystem.cpio.gz)
+#endif
 
 PHYS_OFFSET = 0x70000000;
 
@@ -38,8 +40,10 @@ SECTIONS
 
 	. = PHYS_OFFSET + 0x00800000;
 	filesystem = .;
+#ifdef USE_INITRD
 	.filesystem : { ./filesystem.cpio.gz }
 	fs_size = . - filesystem;
+#endif
 
 	.data : { *(.data) }
 	.bss : { *(.bss) }

@@ -17,9 +17,6 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-#define USE_INITRD
-#undef THUMB2_KERNEL
-
 	.text
 
 	.globl	_start
@@ -81,7 +78,7 @@ atags:
 #ifdef USE_INITRD
 	.asciz	"console=ttyAMA0 mem=256M earlyprintk"
 #else
-	.asciz	"root=/dev/nfs nfsroot=10.1.68.81:/work/nfsroot ip=dhcp console=ttyAMA0 mem=256M earlyprintk"
+	.asciz	"root=/dev/nfs nfsroot=10.1.68.81:/work2/debootstrap/arm ip=dhcp console=ttyAMA0 mem=256M earlyprintk"
 #endif
 	.align	2
 1:
