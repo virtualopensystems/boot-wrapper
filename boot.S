@@ -21,6 +21,7 @@
 
 	.globl	_start
 _start:
+#ifdef SMP
 	@
 	@ CPU initialisation
 	@
@@ -42,6 +43,7 @@ _start:
 	cmp	r1, #0
 	beq	1b
 	mov	pc, r1				@ branch to the given address
+#endif
 
 	@
 	@ UART initialisation (38400 8N1)

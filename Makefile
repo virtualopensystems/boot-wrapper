@@ -1,5 +1,6 @@
 # Build an ELF linux+filesystem image
 
+CPPFLAGS	+= -DSMP
 #CPPFLAGS	+= -DUSE_INITRD
 #CPPFLAGS	+= -DTHUMB2_KERNEL
 
