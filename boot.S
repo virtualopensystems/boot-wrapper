@@ -17,6 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
+	.syntax	unified
 	.text
 
 	.globl	_start
@@ -48,7 +49,12 @@ _start:
 	@
 	@ UART initialisation (38400 8N1)
 	@
-2:	ldr	r0, =0x10009000			@ UART base (RealView/EB)
+2:
+#ifdef MACH_MPS
+	ldr	r0, =0x1f005000			@ UART base (MPS)
+#else
+	ldr	r0, =0x10009000			@ UART base (RealView/EB)
+#endif
 	mov	r1, #0x10			@ ibrd
 	str	r1, [r0, #0x24]
 	mov	r1, #0xc300
@@ -59,7 +65,11 @@ _start:
 	@ Kernel parameters
 	@
 	mov	r0, #0
+#ifdef MACH_MPS
+	ldr	r1, =10000			@ MPS (temporary)
+#else
 	ldr	r1, =827			@ RealView/EB
+#endif
 	adr	r2, atags
 	mov	r3, #0
 	ldr	lr, =kernel
@@ -77,7 +87,9 @@ atags:
 	@ ATAG_CMDLINE
 	.long	(1f - .) >> 2
 	.long	0x54410009
-#ifdef USE_INITRD
+#ifdef MACH_MPS
+	.asciz	"rdinit=/bin/sh console=ttyAMA3 mem=8M earlyprintk"
+#elif defined(USE_INITRD)
 	.asciz	"console=ttyAMA0 mem=256M earlyprintk"
 #else
 	.asciz	"root=/dev/nfs nfsroot=10.1.68.81:/work2/debootstrap/arm ip=dhcp console=ttyAMA0 mem=256M earlyprintk"

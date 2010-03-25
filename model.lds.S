@@ -27,7 +27,11 @@ INPUT(./uImage)
 INPUT(./filesystem.cpio.gz)
 #endif
 
+#ifdef MACH_MPS
+PHYS_OFFSET = 0x10000000;
+#else
 PHYS_OFFSET = 0x70000000;
+#endif
 
 SECTIONS
 {

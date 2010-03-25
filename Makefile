@@ -1,8 +1,14 @@
 # Build an ELF linux+filesystem image
 
-CPPFLAGS	+= -DSMP
+#CPPFLAGS	+= -DSMP
 #CPPFLAGS	+= -DUSE_INITRD
-#CPPFLAGS	+= -DTHUMB2_KERNEL
+CPPFLAGS	+= -DTHUMB2_KERNEL
+CPPFLAGS	+= -march=armv7-a
+
+# MPS (Cortex-M3) definitions
+#CPPFLAGS	+= -DMACH_MPS
+#CPPFLAGS	+= -march=armv7-m
+#CPPFLAGS	+= -mthumb -Wa,-mthumb -Wa,-mimplicit-it=always
 
 BOOTLOADER	= boot.S
 KERNEL		= uImage
