@@ -1,5 +1,5 @@
 /*
- * boot.S - simple register setup code for stand-alone Linux booting
+ * model.lds.S - simple linker script for stand-alone Linux booting
  *
  * Copyright (C) 2009 ARM Limited
  *
@@ -29,6 +29,8 @@ INPUT(./filesystem.cpio.gz)
 
 #ifdef MACH_MPS
 PHYS_OFFSET = 0x10000000;
+#elif defined (VEXPRESS)
+PHYS_OFFSET = 0x80000000;
 #else
 PHYS_OFFSET = 0x70000000;
 #endif

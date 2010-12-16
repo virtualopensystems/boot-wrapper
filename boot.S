@@ -36,11 +36,19 @@ _start:
 	@
 	ldr	r1, =filesystem - 0x100
 	adr	r2, 1f
-	ldmia	r2, {r3 - r6}			@ move the code to a location
-	stmia	r1, {r3 - r6}			@ less likely to be overridden
+	ldmia	r2, {r3 - r7}			@ move the code to a location
+	stmia	r1, {r3 - r7}			@ less likely to be overridden
+#ifdef VEXPRESS
+	ldr	r0, =0x1c010030			@ VE SYS_FLAGS register
+#else
 	ldr	r0, =0x10000030			@ RealView SYS_FLAGS register
+#endif
 	mov	pc, r1				@ branch to the relocated code
-1:	ldr	r1, [r0]
+1:
+#ifdef VEXPRESS
+	wfe
+#endif
+	ldr	r1, [r0]
 	cmp	r1, #0
 	beq	1b
 	mov	pc, r1				@ branch to the given address
@@ -51,7 +59,9 @@ _start:
 	@
 2:
 #ifdef MACH_MPS
-	ldr	r0, =0x1f005000			@ UART base (MPS)
+	ldr	r0, =0x1f005000			@ UART3 base (MPS)
+#elif defined (VEXPRESS)
+	ldr	r0, =0x1c090000			@ UART base (Versatile Express)
 #else
 	ldr	r0, =0x10009000			@ UART base (RealView/EB)
 #endif
@@ -67,6 +77,8 @@ _start:
 	mov	r0, #0
 #ifdef MACH_MPS
 	ldr	r1, =10000			@ MPS (temporary)
+#elif defined (VEXPRESS)
+	ldr	r1, =2272			@ Versatile Express
 #else
 	ldr	r1, =827			@ RealView/EB
 #endif
@@ -88,11 +100,15 @@ atags:
 	.long	(1f - .) >> 2
 	.long	0x54410009
 #ifdef MACH_MPS
-	.asciz	"rdinit=/bin/sh console=ttyAMA3 mem=8M earlyprintk"
+	.asciz	"rdinit=/bin/sh console=ttyAMA3 mem=4M earlyprintk"
 #elif defined(USE_INITRD)
-	.asciz	"console=ttyAMA0 mem=256M earlyprintk"
+#ifdef VEXPRESS
+	.asciz	"console=ttyAMA0 mem=512M mem=512M@0x880000000 earlyprintk"
 #else
-	.asciz	"root=/dev/nfs nfsroot=10.1.68.81:/work2/debootstrap/arm ip=dhcp console=ttyAMA0 mem=256M earlyprintk"
+	.asciz	"console=ttyAMA0 mem=256M earlyprintk"
+#endif
+#else
+	.asciz	"root=/dev/nfs nfsroot=10.1.77.43:/work/debootstrap/arm ip=dhcp console=ttyAMA0 mem=256M earlyprintk"
 #endif
 	.align	2
 1:
