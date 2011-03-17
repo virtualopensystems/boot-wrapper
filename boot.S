@@ -44,6 +44,13 @@ _start:
 	mov	pc, r1				@ branch to the given address
 #endif
 
+	@
+	@ Hypervisor / TrustZone initialization
+	@
+2:
+	mov	r0, #0
+	mcr	p15, 0, r0, c12, c0, 1		@ Monitor vector base address
+	smc	#0				@ Change to NS-mode 
 
 	@
 	@ UART initialisation (38400 8N1)

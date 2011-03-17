@@ -16,6 +16,7 @@ CPPFLAGS	+= -DVEXPRESS
 #CPPFLAGS	+= -march=armv7-m
 #CPPFLAGS	+= -mthumb -Wa,-mthumb -Wa,-mimplicit-it=always
 
+MONITOR		= monitor.S
 BOOTLOADER	= boot.S
 KERNEL		= uImage
 FILESYSTEM	= filesystem.cpio.gz
@@ -30,22 +31,23 @@ LD		= $(CROSS_COMPILE)ld
 
 all: $(IMAGE)
 
-src_kernel:
-	cd ../linux-kvm-arm; make -j4 uImage
-
 clean:
-	rm -f $(IMAGE) boot.o model.lds
+	rm -f $(IMAGE) boot.o model.lds monitor.o uImage
 
-$(KERNEL): src_kernel ../linux-kvm-arm/arch/arm/boot/uImage
+$(KERNEL): ../linux-kvm-arm/arch/arm/boot/zImage
+	cd ../linux-kvm-arm; make -j4 uImage
 	cp ../linux-kvm-arm/arch/arm/boot/uImage $(KERNEL)
 
-$(IMAGE): boot.o model.lds $(KERNEL) $(FILESYSTEM) Makefile
+$(IMAGE): boot.o monitor.o model.lds $(KERNEL) $(FILESYSTEM) Makefile
 	$(LD) -o $@ --script=model.lds
 
 boot.o: $(BOOTLOADER)
 	$(CC) $(CPPFLAGS) -c -o $@ $<
 
+monitor.o: $(MONITOR)
+	$(CC) $(CPPFLAGS) -c -o $@ $<
+
 model.lds: $(LD_SCRIPT) Makefile
 	$(CC) $(CPPFLAGS) -E -P -C -o $@ $<
 
-.PHONY: all clean src_kernel
+.PHONY: all clean

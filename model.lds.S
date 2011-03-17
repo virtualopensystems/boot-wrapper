@@ -11,6 +11,7 @@ OUTPUT_FORMAT("elf32-littlearm")
 OUTPUT_ARCH(arm)
 TARGET(binary)
 
+INPUT(./monitor.o)
 INPUT(./boot.o)
 INPUT(./uImage)
 #ifdef USE_INITRD
@@ -27,6 +28,10 @@ PHYS_OFFSET = 0x80000000;
 
 SECTIONS
 {
+ . = 0x0;
+ monitor = .;
+ .monitor : { monitor.o }
+
  . = PHYS_OFFSET;
  .text : { boot.o }
 
