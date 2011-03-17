@@ -6,7 +6,7 @@
 # found in the LICENSE.txt file.
 
 CPPFLAGS	+= -DSMP
-CPPFLAGS	+= -DUSE_INITRD
+#CPPFLAGS	+= -DUSE_INITRD
 #CPPFLAGS	+= -DTHUMB2_KERNEL
 CPPFLAGS	+= -march=armv7-a
 CPPFLAGS	+= -DVEXPRESS
@@ -39,13 +39,13 @@ clean:
 $(KERNEL): src_kernel ../linux-kvm-arm/arch/arm/boot/uImage
 	cp ../linux-kvm-arm/arch/arm/boot/uImage $(KERNEL)
 
-$(IMAGE): boot.o model.lds $(KERNEL) $(FILESYSTEM)
+$(IMAGE): boot.o model.lds $(KERNEL) $(FILESYSTEM) Makefile
 	$(LD) -o $@ --script=model.lds
 
 boot.o: $(BOOTLOADER)
 	$(CC) $(CPPFLAGS) -c -o $@ $<
 
-model.lds: $(LD_SCRIPT)
+model.lds: $(LD_SCRIPT) Makefile
 	$(CC) $(CPPFLAGS) -E -P -C -o $@ $<
 
 .PHONY: all clean src_kernel
