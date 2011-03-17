@@ -48,7 +48,7 @@ _start:
 	@ Hypervisor / TrustZone initialization
 	@
 2:
-	mov	r0, #0
+	mov	r0, #0xf0000000
 	mcr	p15, 0, r0, c12, c0, 1		@ Monitor vector base address
 	smc	#0				@ Change to NS-mode 
 

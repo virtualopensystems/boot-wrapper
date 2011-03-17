@@ -22,16 +22,13 @@ INPUT(./uImage)
 
 
 PHYS_OFFSET = 0x80000000;
+MON_OFFSET  = 0xf0000000;
 
 
 
 
 SECTIONS
 {
- . = 0x0;
- monitor = .;
- .monitor : { monitor.o }
-
  . = PHYS_OFFSET;
  .text : { boot.o }
 
@@ -48,4 +45,7 @@ SECTIONS
 
  .data : { *(.data) }
  .bss : { *(.bss) }
+
+ . = MON_OFFSET;
+ .monitor : { monitor.o }
 }
