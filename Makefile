@@ -1,4 +1,9 @@
-# Build an ELF linux+filesystem image
+# Makefile - build a kernel+filesystem image for stand-alone Linux booting
+#
+# Copyright (C) 2011 ARM Limited. All rights reserved.
+#
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE.txt file.
 
 CPPFLAGS	+= -DSMP
 CPPFLAGS	+= -DUSE_INITRD
