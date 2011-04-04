@@ -14,33 +14,33 @@ TARGET(binary)
 INPUT(./boot.o)
 INPUT(./uImage)
 #ifdef USE_INITRD
-INPUT(./filesystem.cpio.gz)
+ INPUT(./filesystem.cpio.gz)
 #endif
 
-#ifdef MACH_MPS
-PHYS_OFFSET = 0x10000000;
-#elif defined (VEXPRESS)
+
+
+
 PHYS_OFFSET = 0x80000000;
-#else
-PHYS_OFFSET = 0x70000000;
-#endif
+
+
+
 
 SECTIONS
 {
-	. = PHYS_OFFSET;
-	.text : { boot.o }
+ . = PHYS_OFFSET;
+ .text : { boot.o }
 
-	. = PHYS_OFFSET + 0x8000 - 0x40;
-	kernel = . + 0x40;
-	.kernel : { ./uImage }
+ . = PHYS_OFFSET + 0x8000 - 0x40;
+ kernel = . + 0x40;
+ .kernel : { ./uImage }
 
-	. = PHYS_OFFSET + 0x00800000;
-	filesystem = .;
+ . = PHYS_OFFSET + 0x00800000;
+ filesystem = .;
 #ifdef USE_INITRD
-	.filesystem : { ./filesystem.cpio.gz }
-	fs_size = . - filesystem;
+ .filesystem : { ./filesystem.cpio.gz }
+ fs_size = . - filesystem;
 #endif
 
-	.data : { *(.data) }
-	.bss : { *(.bss) }
+ .data : { *(.data) }
+ .bss : { *(.bss) }
 }

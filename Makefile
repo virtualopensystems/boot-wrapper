@@ -30,8 +30,14 @@ LD		= $(CROSS_COMPILE)ld
 
 all: $(IMAGE)
 
+src_kernel:
+	cd ../linux-kvm-arm; make -j4 uImage
+
 clean:
 	rm -f $(IMAGE) boot.o model.lds
+
+$(KERNEL): src_kernel ../linux-kvm-arm/arch/arm/boot/uImage
+	cp ../linux-kvm-arm/arch/arm/boot/uImage $(KERNEL)
 
 $(IMAGE): boot.o model.lds $(KERNEL) $(FILESYSTEM)
 	$(LD) -o $@ --script=model.lds
@@ -41,3 +47,5 @@ boot.o: $(BOOTLOADER)
 
 model.lds: $(LD_SCRIPT)
 	$(CC) $(CPPFLAGS) -E -P -C -o $@ $<
+
+.PHONY: all clean src_kernel
