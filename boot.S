@@ -50,6 +50,11 @@ _start:
 2:
 	mov	r0, #0xf0000000
 	mcr	p15, 0, r0, c12, c0, 1		@ Monitor vector base address
+	mov	r7, #0xffffffff
+	smc	#0				@ Change to NS-mode 
+
+	@TEST
+	mov	r7, #0xfffffff0
 	smc	#0				@ Change to NS-mode 
 
 	@
