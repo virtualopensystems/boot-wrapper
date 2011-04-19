@@ -48,6 +48,12 @@ _start:
 	@ Hypervisor / TrustZone initialization
 	@
 2:
+	@ Set GIC priority mask bit [7] = 1
+	ldr	r0, =0x2c002000			@ CPU GIC base
+	mov	r1, #0x80
+	str	r1, [r0, #0x4]			@ GIC ICCPMR
+
+	@ Change to NS-mode
 	mov	r0, #0xf0000000
 	mcr	p15, 0, r0, c12, c0, 1		@ Monitor vector base address
 	mov	r7, #0xffffffff
