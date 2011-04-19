@@ -53,9 +53,6 @@ _start:
 	mov	r7, #0xffffffff
 	smc	#0				@ Change to NS-mode 
 
-	@TEST
-	mov	r7, #0xfffffff0
-	smc	#0				@ Change to NS-mode 
 
 	@
 	@ UART initialisation (38400 8N1)
