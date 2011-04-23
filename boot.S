@@ -65,6 +65,12 @@ _start:
 	mov	r1, #0x80
 	str	r1, [r0, #0x4]			@ GIC ICCPMR
 
+	@ Set NSACR to allow coprocessor access from non-secure
+	mrc	p15, 0, r0, c1, c1, 2
+	ldr	r1, =0x3fff
+	orr	r0, r0, r1
+	mcr	p15, 0, r0, c1, c1, 2
+
 	@ Change to NS-mode
 	mov	r0, #0xf0000000
 	mcr	p15, 0, r0, c12, c0, 1		@ Monitor vector base address
