@@ -48,6 +48,18 @@ _start:
 	@ Hypervisor / TrustZone initialization
 	@
 2:
+	@ Set all interrupts to be non-secure
+	ldr	r0, =0x2c001000			@ Dist GIC base
+	ldr	r1, [r0, #0x04]			@ Type Register
+	and	r1, r1, #0x1f
+	add	r2, r0, #0x080			@ Security Register 0
+	mvn	r3, #0
+3:	str	r3, [r2]
+	sub	r1, r1, #1
+	add	r2, r2, #4			@ Next security register
+	cmp	r1, #-1
+	bne	3b
+
 	@ Set GIC priority mask bit [7] = 1
 	ldr	r0, =0x2c002000			@ CPU GIC base
 	mov	r1, #0x80
