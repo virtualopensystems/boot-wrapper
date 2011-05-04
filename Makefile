@@ -18,6 +18,7 @@ CPPFLAGS	+= -DVEXPRESS
 
 MONITOR		= monitor.S
 BOOTLOADER	= boot.S
+KERNEL_SRC	= ../linux-kvm-arm
 KERNEL		= uImage
 FILESYSTEM	= filesystem.cpio.gz
 
@@ -35,8 +36,8 @@ clean:
 	rm -f $(IMAGE) boot.o model.lds monitor.o uImage
 
 $(KERNEL): ../linux-kvm-arm/arch/arm/boot/zImage
-	cd ../linux-kvm-arm; make -j4 uImage
-	cp ../linux-kvm-arm/arch/arm/boot/uImage $(KERNEL)
+	cd $(KERNEL_SRC); make -j4 uImage
+	cp $(KERNEL_SRC)/arch/arm/boot/uImage $(KERNEL)
 
 $(IMAGE): boot.o monitor.o model.lds $(KERNEL) $(FILESYSTEM) Makefile
 	$(LD) -o $@ --script=model.lds
