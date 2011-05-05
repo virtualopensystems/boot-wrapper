@@ -52,6 +52,7 @@
 	@ Jump table for the SMC hypervisor API calls
 	@
 _hyp_funcs:
+	.long	_write_hvbar
 	.long	_read_httbr
 	.long	_write_httbr
 	.long	_read_htcr
@@ -64,8 +65,6 @@ _hyp_funcs:
 	.long	_write_hsctlr
 	.long	_read_hypsp
 	.long	_write_hypsp
-	.long	_read_hvbar
-	.long	_write_hvbar
 
 	@
 	@ Switch to non-secure mode
@@ -76,6 +75,16 @@ _non_sec:
 	ldr	r13, =0x131
 	orr	r0, r0, r13
 	mcr	p15, 0, r0, c1, c1, 0
+	movs	pc, lr
+
+	@
+	@ Read/Write HVBAR
+	@
+_read_hvbar:
+	mrc	p15, 4, r0, c12, c0, 0
+	movs	pc, lr
+_write_hvbar:
+	mcr	p15, 4, r0, c12, c0, 0
 	movs	pc, lr
 
 	@
@@ -132,14 +141,4 @@ _read_hypsp:
 	movs	pc, lr
 _write_hypsp:
 	mov	sp, r0
-	movs	pc, lr
-
-	@
-	@ Read/Write HVBAR
-	@
-_read_hvbar:
-	mrc	p15, 4, r0, c12, c0, 0
-	movs	pc, lr
-_write_hvbar:
-	mcr	p15, 4, r0, c12, c0, 0
 	movs	pc, lr
