@@ -25,7 +25,7 @@ FILESYSTEM	= filesystem.cpio.gz
 IMAGE		= linux-system.axf
 LD_SCRIPT	= model.lds.S
 
-CROSS_COMPILE	= arm-none-linux-gnueabi-
+CROSS_COMPILE	?= arm-unknown-eabi-
 
 CC		= $(CROSS_COMPILE)gcc
 LD		= $(CROSS_COMPILE)ld

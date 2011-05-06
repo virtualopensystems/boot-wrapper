@@ -8,6 +8,7 @@
  */
 
 	.syntax	unified
+	.arch_extension sec
 	.text
 
 	.globl	_start
