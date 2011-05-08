@@ -32,7 +32,7 @@
 	cmp	r12, #0xfffffff0
 	movnes	pc, lr
 	and	r12, r7, #0xf
-	cmp	r12, #0xd
+	cmp	r12, #0x0
 	movgts	pc, lr
 
 	@ Check the VMID is 0
@@ -53,18 +53,6 @@
 	@
 _hyp_funcs:
 	.long	_write_hvbar
-	.long	_read_httbr
-	.long	_write_httbr
-	.long	_read_htcr
-	.long	_write_htcr
-	.long	_read_hmair0
-	.long	_write_hmair0
-	.long	_read_hmair1
-	.long	_write_hmair1
-	.long	_read_hsctlr
-	.long	_write_hsctlr
-	.long	_read_hypsp
-	.long	_write_hypsp
 
 	@
 	@ Switch to non-secure mode
@@ -80,65 +68,6 @@ _non_sec:
 	@
 	@ Read/Write HVBAR
 	@
-_read_hvbar:
-	mrc	p15, 4, r0, c12, c0, 0
-	movs	pc, lr
 _write_hvbar:
 	mcr	p15, 4, r0, c12, c0, 0
-	movs	pc, lr
-
-	@
-	@ Read/Write HTTBR
-	@
-_read_httbr:
-	mrrc	p15, 4, r0, r1, c2
-	movs	pc, lr
-_write_httbr:
-	mcrr	p15, 4, r0, r1, c2
-	movs	pc, lr
-
-	@
-	@ Read/Write HTCR
-	@
-_read_htcr:
-	mrc	p15, 4, r0, c2, c0, 2
-	movs	pc, lr
-_write_htcr:
-	mcr	p15, 4, r0, c2, c0, 2
-	movs	pc, lr
-
-	@
-	@ Read/Write HMAIR0/1
-	@
-_read_hmair0:
-	mrc	p15, 4, r0, c10, c2, 0
-	movs	pc, lr
-_write_hmair0:
-	mcr	p15, 4, r0, c10, c2, 0
-	movs	pc, lr
-_read_hmair1:
-	mrc	p15, 4, r0, c10, c2, 1
-	movs	pc, lr
-_write_hmair1:
-	mcr	p15, 4, r0, c10, c2, 1
-	movs	pc, lr
-
-	@
-	@ Read/Write HSCTLR
-	@
-_read_hsctlr:
-	mrc	p15, 4, r0, c1, c0, 0
-	movs	pc, lr
-_write_hsctlr:
-	mcr	p15, 4, r0, c1, c0, 0
-	movs	pc, lr
-
-	@
-	@ Read/Write hyp sp
-	@
-_read_hypsp:
-	mov	r0, sp
-	movs	pc, lr
-_write_hypsp:
-	mov	sp, r0
 	movs	pc, lr
