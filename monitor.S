@@ -24,6 +24,9 @@
 	@ Secure Monitor Call
 	@
 1:
+	ldr	sp, =_monitor_stack
+	push	{r11, r12}
+
 	cmp	r7, #0xffffffff
 	beq	_non_sec
 
@@ -33,20 +36,22 @@
 	movnes	pc, lr
 	and	r12, r7, #0xf
 	cmp	r12, #0x0
+	popgt	{r11, r12}
 	movgts	pc, lr
 
 	@ Check the VMID is 0
-	mrrc	p15, 6, r12, r13, c2
-	lsr	r13, r13, #16
-	and	r13, r13, #0xff
-	cmp	r13, #0
+	mrrc	p15, 6, r12, r11, c2
+	lsr	r11, r11, #16
+	and	r11, r11, #0xff
+	cmp	r11, #0
+	popne	{r11, r12}
 	movnes	pc, lr
 
 	@ Jump to the right function
 	and	r12, r7, #0xf
-	adr	r13, _hyp_funcs
-	add	r13, r13, r12, lsl #2
-	ldr	pc, [r13]
+	adr	r11, _hyp_funcs
+	add	r11, r11, r12, lsl #2
+	ldr	pc, [r11]
 
 	@
 	@ Jump table for the SMC hypervisor API calls
@@ -58,11 +63,12 @@ _hyp_funcs:
 	@ Switch to non-secure mode
 	@
 _non_sec:
-	mrc	p15, 0, r0, c1, c1, 0		@ Secure configuration register
-	bic	r0, r0, #0x07f
-	ldr	r13, =0x131
-	orr	r0, r0, r13
-	mcr	p15, 0, r0, c1, c1, 0
+	mrc	p15, 0, r12, c1, c1, 0		@ Secure configuration register
+	bic	r12, r12, #0x07f
+	ldr	r11, =0x131
+	orr	r12, r12, r11
+	mcr	p15, 0, r12, c1, c1, 0
+	pop	{r11, r12}
 	movs	pc, lr
 
 	@
@@ -70,4 +76,11 @@ _non_sec:
 	@
 _write_hvbar:
 	mcr	p15, 4, r0, c12, c0, 0
+	pop	{r11, r12}
 	movs	pc, lr
+
+	.ltorg
+
+	/* A bit of stack space for monitor mode */
+	.align	12
+_monitor_stack:
