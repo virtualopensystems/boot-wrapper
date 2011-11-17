@@ -17,6 +17,45 @@ _start:
 	@
 	@ CPU initialisation
 	@
+	mrc	p15, 0, r4, c0, c0, 5		@ MPIDR (ARMv7 only)
+	and	r4, r4, #15			@ CPU number
+
+	@
+	@ Hypervisor / TrustZone initialization
+	@
+
+	@ Set all interrupts to be non-secure
+	ldr	r0, =0x2c001000			@ Dist GIC base
+	ldr	r1, [r0, #0x04]			@ Type Register
+	cmp	r4, #0
+	andeq	r1, r1, #0x1f
+	movne	r1, #0
+	add	r2, r0, #0x080			@ Security Register 0
+	mvn	r3, #0
+2:	str	r3, [r2]
+	sub	r1, r1, #1
+	add	r2, r2, #4			@ Next security register
+	cmp	r1, #-1
+	bne	2b
+
+	@ Set GIC priority mask bit [7] = 1
+	ldr	r0, =0x2c002000			@ CPU GIC base
+	mov	r1, #0x80
+	str	r1, [r0, #0x4]			@ GIC ICCPMR
+
+	@ Set NSACR to allow coprocessor access from non-secure
+	mrc	p15, 0, r0, c1, c1, 2
+	ldr	r1, =0x43fff
+	orr	r0, r0, r1
+	mcr	p15, 0, r0, c1, c1, 2
+
+	@ Change to NS-mode
+	mov	r0, #0xf0000000
+	mcr	p15, 0, r0, c12, c0, 1		@ Monitor vector base address
+	mov	r7, #0xffffffff
+	smc	#0				@ Change to NS-mode 
+
+	@ Check CPU nr again
 	mrc	p15, 0, r0, c0, c0, 5		@ MPIDR (ARMv7 only)
 	and	r0, r0, #15			@ CPU number
 	cmp	r0, #0				@ primary CPU?
@@ -25,6 +64,7 @@ _start:
 	@
 	@ Secondary CPUs (following the RealView SMP booting protocol)
 	@
+
 	ldr	r1, =filesystem - 0x100
 	adr	r2, 1f
 	ldmia	r2, {r3 - r7}			@ move the code to a location
@@ -45,40 +85,7 @@ _start:
 	mov	pc, r1				@ branch to the given address
 #endif
 
-	@
-	@ Hypervisor / TrustZone initialization
-	@
 2:
-	@ Set all interrupts to be non-secure
-	ldr	r0, =0x2c001000			@ Dist GIC base
-	ldr	r1, [r0, #0x04]			@ Type Register
-	and	r1, r1, #0x1f
-	add	r2, r0, #0x080			@ Security Register 0
-	mvn	r3, #0
-3:	str	r3, [r2]
-	sub	r1, r1, #1
-	add	r2, r2, #4			@ Next security register
-	cmp	r1, #-1
-	bne	3b
-
-	@ Set GIC priority mask bit [7] = 1
-	ldr	r0, =0x2c002000			@ CPU GIC base
-	mov	r1, #0x80
-	str	r1, [r0, #0x4]			@ GIC ICCPMR
-
-	@ Set NSACR to allow coprocessor access from non-secure
-	mrc	p15, 0, r0, c1, c1, 2
-	ldr	r1, =0x3fff
-	orr	r0, r0, r1
-	mcr	p15, 0, r0, c1, c1, 2
-
-	@ Change to NS-mode
-	mov	r0, #0xf0000000
-	mcr	p15, 0, r0, c12, c0, 1		@ Monitor vector base address
-	mov	r7, #0xffffffff
-	smc	#0				@ Change to NS-mode 
-
-
 	@
 	@ UART initialisation (38400 8N1)
 	@
