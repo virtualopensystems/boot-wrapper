@@ -1,3 +1,6 @@
 filesystem.cpio.gz
 linux-system.axf
 uImage
+model.lds
+*.o
+*.swp

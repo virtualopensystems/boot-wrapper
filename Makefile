@@ -6,7 +6,7 @@
 # found in the LICENSE.txt file.
 
 CPPFLAGS	+= -DSMP
-CPPFLAGS	+= -DUSE_INITRD
+#CPPFLAGS	+= -DUSE_INITRD
 #CPPFLAGS	+= -DTHUMB2_KERNEL
 CPPFLAGS	+= -march=armv7-a
 CPPFLAGS	+= -DVEXPRESS
@@ -16,14 +16,16 @@ CPPFLAGS	+= -DVEXPRESS
 #CPPFLAGS	+= -march=armv7-m
 #CPPFLAGS	+= -mthumb -Wa,-mthumb -Wa,-mimplicit-it=always
 
+MONITOR		= monitor.S
 BOOTLOADER	= boot.S
+KERNEL_SRC	= ../linux-kvm-arm
 KERNEL		= uImage
 FILESYSTEM	= filesystem.cpio.gz
 
 IMAGE		= linux-system.axf
 LD_SCRIPT	= model.lds.S
 
-CROSS_COMPILE	= arm-none-linux-gnueabi-
+CROSS_COMPILE	?= arm-unknown-eabi-
 
 CC		= $(CROSS_COMPILE)gcc
 LD		= $(CROSS_COMPILE)ld
@@ -31,13 +33,22 @@ LD		= $(CROSS_COMPILE)ld
 all: $(IMAGE)
 
 clean:
-	rm -f $(IMAGE) boot.o model.lds
+	rm -f $(IMAGE) boot.o model.lds monitor.o uImage
 
-$(IMAGE): boot.o model.lds $(KERNEL) $(FILESYSTEM)
+$(KERNEL): ../linux-kvm-arm/arch/arm/boot/zImage
+	cd $(KERNEL_SRC); make -j4 uImage
+	cp $(KERNEL_SRC)/arch/arm/boot/uImage $(KERNEL)
+
+$(IMAGE): boot.o monitor.o model.lds $(KERNEL) $(FILESYSTEM) Makefile
 	$(LD) -o $@ --script=model.lds
 
 boot.o: $(BOOTLOADER)
 	$(CC) $(CPPFLAGS) -c -o $@ $<
 
-model.lds: $(LD_SCRIPT)
+monitor.o: $(MONITOR)
+	$(CC) $(CPPFLAGS) -c -o $@ $<
+
+model.lds: $(LD_SCRIPT) Makefile
 	$(CC) $(CPPFLAGS) -E -P -C -o $@ $<
+
+.PHONY: all clean
