@@ -30,6 +30,9 @@ CROSS_COMPILE	?= arm-unknown-eabi-
 CC		= $(CROSS_COMPILE)gcc
 LD		= $(CROSS_COMPILE)ld
 
+# These are needed by the underlying kernel make
+export CROSS_COMPILE ARCH
+
 all: $(IMAGE)
 
 clean:
