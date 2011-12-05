@@ -142,6 +142,10 @@ atags:
 	@ ATAG_CMDLINE
 	.long	(1f - .) >> 2
 	.long	0x54410009
+#ifdef KCMD
+        /* User-specified command line always overrides */
+        .asciz KCMD
+#else
 #ifdef MACH_MPS
 	.asciz	"rdinit=/bin/sh console=ttyAMA3 mem=4M earlyprintk"
 #elif defined(VEXPRESS)
@@ -160,6 +164,7 @@ atags:
 	.asciz	"root=/dev/nfs nfsroot=10.1.77.43:/work/debootstrap/arm ip=dhcp console=ttyAMA0 mem=256M earlyprintk"
 #endif
 
+#endif
 #endif
 	.align	2
 1:

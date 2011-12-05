@@ -24,6 +24,18 @@ endif
 #CPPFLAGS	+= -march=armv7-m
 #CPPFLAGS	+= -mthumb -Wa,-mthumb -Wa,-mimplicit-it=always
 
+# Kernel command line
+# MPS:
+# KCMD = "rdinit=/bin/sh console=ttyAMA3 mem=4M earlyprintk"
+# not-vexpress (ie EB, RealviewPB, etc), with initrd
+# KCMD = "console=ttyAMA0 mem=256M earlyprintk"
+# not-vexpress, without initrd:
+# KCMD = "root=/dev/nfs nfsroot=10.1.77.43:/work/debootstrap/arm ip=dhcp console=ttyAMA0 mem=256M earlyprintk"
+# Vexpress, with initrd:
+# KCMD = "console=ttyAMA0 mem=512M mem=512M@0x880000000 earlyprintk ip=192.168.27.200::192.168.27.1:255.255.255.0:angstrom:eth0:off"
+# VExpress, without initrd:
+KCMD ?= "console=ttyAMA0 mem=512M mem=512M@0x880000000 earlyprintk root=/dev/nfs nfsroot=172.31.252.250:/srv/arm-oneiric-root,tcp rw ip=dhcp nfsrootdebug"
+
 MONITOR		= monitor.S
 BOOTLOADER	= boot.S
 KERNEL_SRC	= ../linux-kvm-arm
@@ -54,7 +66,7 @@ $(IMAGE): boot.o monitor.o model.lds $(KERNEL) $(FILESYSTEM) Makefile
 	$(LD) -o $@ --script=model.lds
 
 boot.o: $(BOOTLOADER)
-	$(CC) $(CPPFLAGS) -c -o $@ $<
+	$(CC) $(CPPFLAGS) -DKCMD='$(KCMD)' -c -o $@ $<
 
 monitor.o: $(MONITOR)
 	$(CC) $(CPPFLAGS) -c -o $@ $<
