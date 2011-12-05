@@ -35,9 +35,9 @@ all: $(IMAGE)
 clean:
 	rm -f $(IMAGE) boot.o model.lds monitor.o uImage
 
-$(KERNEL): ../linux-kvm-arm/arch/arm/boot/zImage
-	cd $(KERNEL_SRC); make -j4 uImage
-	cp $(KERNEL_SRC)/arch/arm/boot/uImage $(KERNEL)
+$(KERNEL): $(KERNEL_SRC)/arch/arm/boot/uImage
+	$(MAKE) -C $(KERNEL_SRC) -j4 uImage
+	cp $< $@
 
 $(IMAGE): boot.o monitor.o model.lds $(KERNEL) $(FILESYSTEM) Makefile
 	$(LD) -o $@ --script=model.lds
