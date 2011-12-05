@@ -26,6 +26,7 @@ IMAGE		= linux-system.axf
 LD_SCRIPT	= model.lds.S
 
 CROSS_COMPILE	?= arm-unknown-eabi-
+ARCH		?= arm
 
 CC		= $(CROSS_COMPILE)gcc
 LD		= $(CROSS_COMPILE)ld
