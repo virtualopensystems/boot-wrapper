@@ -6,10 +6,18 @@
 # found in the LICENSE.txt file.
 
 CPPFLAGS	+= -DSMP
-#CPPFLAGS	+= -DUSE_INITRD
 #CPPFLAGS	+= -DTHUMB2_KERNEL
 CPPFLAGS	+= -march=armv7-a
 CPPFLAGS	+= -DVEXPRESS
+
+# Turn this on to use an initrd whose contents are in filesystem.cpio.gz
+USE_INITRD = no
+ifeq ($(USE_INITRD),yes)
+CPPFLAGS	+= -DUSE_INITRD
+FILESYSTEM	= filesystem.cpio.gz
+else
+FILESYSTEM =
+endif
 
 # MPS (Cortex-M3) definitions
 #CPPFLAGS	+= -DMACH_MPS -DTHUMB2_KERNEL
@@ -20,7 +28,6 @@ MONITOR		= monitor.S
 BOOTLOADER	= boot.S
 KERNEL_SRC	= ../linux-kvm-arm
 KERNEL		= uImage
-FILESYSTEM	= filesystem.cpio.gz
 
 IMAGE		= linux-system.axf
 LD_SCRIPT	= model.lds.S
