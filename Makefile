@@ -59,7 +59,6 @@ clean:
 	rm -f $(IMAGE) boot.o model.lds monitor.o uImage
 
 $(KERNEL): $(KERNEL_SRC)/arch/arm/boot/uImage
-	$(MAKE) -C $(KERNEL_SRC) -j4 uImage
 	cp $< $@
 
 $(IMAGE): boot.o monitor.o model.lds $(KERNEL) $(FILESYSTEM) Makefile
@@ -73,5 +72,17 @@ monitor.o: $(MONITOR)
 
 model.lds: $(LD_SCRIPT) Makefile
 	$(CC) $(CPPFLAGS) -E -P -C -o $@ $<
+
+$(KERNEL_SRC)/arch/arm/boot/uImage: force
+	$(MAKE) -C $(KERNEL_SRC) -j4 uImage
+
+# Pass any target we don't know about through to the kernel makefile.
+# This is a convenience rule so we can say 'make menuconfig' etc here.
+%: force
+	$(MAKE) -C $(KERNEL_SRC) $@
+
+force: ;
+
+Makefile: ;
 
 .PHONY: all clean
