@@ -142,30 +142,8 @@ atags:
 	@ ATAG_CMDLINE
 	.long	(1f - .) >> 2
 	.long	0x54410009
-#ifdef KCMD
-        /* User-specified command line always overrides */
+        /* The kernel boot command line is defined in the Make system */
         .asciz KCMD
-#else
-#ifdef MACH_MPS
-	.asciz	"rdinit=/bin/sh console=ttyAMA3 mem=4M earlyprintk"
-#elif defined(VEXPRESS)
-
-#ifdef USE_INITRD
-	.asciz	"console=ttyAMA0 mem=512M mem=512M@0x880000000 earlyprintk ip=192.168.27.200::192.168.27.1:255.255.255.0:angstrom:eth0:off"
-#else /* VEXPRESS && !USE_INITRD */
-	.asciz	"console=ttyAMA0 mem=512M mem=512M@0x880000000 earlyprintk root=/dev/nfs nfsroot=192.168.27.93:/srv/nfs_root,tcp rw ip=dhcp nfsrootdebug"
-#endif
-
-#else /* ! VEXPRESS && ! MACH_MPS */
-
-#ifdef USE_INITRD
-	.asciz	"console=ttyAMA0 mem=256M earlyprintk"
-#else
-	.asciz	"root=/dev/nfs nfsroot=10.1.77.43:/work/debootstrap/arm ip=dhcp console=ttyAMA0 mem=256M earlyprintk"
-#endif
-
-#endif
-#endif
 	.align	2
 1:
 
