@@ -18,6 +18,7 @@ BOOTLOADER	= boot.S
 KERNEL		= uImage
 
 IMAGE		= linux-system.axf
+SEMIIMG 	= linux-system-semi.axf
 LD_SCRIPT	= model.lds.S
 
 
@@ -27,7 +28,7 @@ LD		= $(CROSS_COMPILE)ld
 # These are needed by the underlying kernel make
 export CROSS_COMPILE ARCH
 
-all: $(IMAGE)
+all: $(IMAGE) $(SEMIIMG)
 
 clean:
 	rm -f $(IMAGE) boot.o model.lds monitor.o uImage
@@ -38,14 +39,23 @@ $(KERNEL): $(KERNEL_SRC)/arch/arm/boot/uImage
 $(IMAGE): boot.o monitor.o model.lds $(KERNEL) $(FILESYSTEM) Makefile
 	$(LD) -o $@ --script=model.lds
 
+$(SEMIIMG): bootsemi.o monitor.o modelsemi.lds
+	$(LD) -o $@ --script=modelsemi.lds
+
 boot.o: $(BOOTLOADER)
 	$(CC) $(CPPFLAGS) -DKCMD='$(KCMD)' -c -o $@ $<
+
+bootsemi.o: $(BOOTLOADER)
+	$(CC) $(CPPFLAGS) -DSEMIHOSTING=1 -c -o $@ $<
 
 monitor.o: $(MONITOR)
 	$(CC) $(CPPFLAGS) -c -o $@ $<
 
 model.lds: $(LD_SCRIPT) Makefile
 	$(CC) $(CPPFLAGS) -E -P -C -o $@ $<
+
+modelsemi.lds: $(LD_SCRIPT) Makefile
+	$(CC) $(CPPFLAGS) -DSEMIHOSTING=1 -E -P -C -o $@ $<
 
 $(KERNEL_SRC)/arch/arm/boot/uImage: force
 	$(MAKE) -C $(KERNEL_SRC) -j4 uImage

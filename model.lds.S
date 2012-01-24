@@ -13,11 +13,12 @@ TARGET(binary)
 
 INPUT(./monitor.o)
 INPUT(./boot.o)
+#ifndef SEMIHOSTING
 INPUT(./uImage)
 #ifdef USE_INITRD
  INPUT(./filesystem.cpio.gz)
 #endif
-
+#endif
 
 
 
@@ -30,15 +31,22 @@ MON_OFFSET  = 0xf0000000;
 SECTIONS
 {
  . = PHYS_OFFSET;
+
+#ifdef SEMIHOSTING
+ .text : { bootsemi.o }
+#else
  .text : { boot.o }
+#endif
 
  . = PHYS_OFFSET + 0x8000 - 0x40;
  kernel = . + 0x40;
+#ifndef SEMIHOSTING
  .kernel : { ./uImage }
+#endif
 
  . = PHYS_OFFSET + 0x00800000;
  filesystem = .;
-#ifdef USE_INITRD
+#if defined(USE_INITRD) && !defined(SEMIHOSTING)
  .filesystem : { ./filesystem.cpio.gz }
  fs_size = . - filesystem;
 #endif
