@@ -63,7 +63,7 @@ endif # SYSTEM = mps
 ifeq ($(SYSTEM),realview_eb)
 
 #CPPFLAGS	+= -DSMP
-CPPFLAGS	+= -march=armv7-a
+CPPFLAGS	+= -march=armv7-a -marm
 #CPPFLAGS	+= -DTHUMB2_KERNEL
 
 # Default kernel command line, using initrd:
@@ -84,7 +84,7 @@ endif # SYSTEM = realvire_eb
 ifeq ($(SYSTEM),vexpress)
 
 CPPFLAGS	+= -DSMP
-CPPFLAGS	+= -march=armv7-a
+CPPFLAGS	+= -march=armv7-a -marm
 #CPPFLAGS	+= -DTHUMB2_KERNEL
 CPPFLAGS	+= -DVEXPRESS
 
