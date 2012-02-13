@@ -11,8 +11,6 @@ OUTPUT_FORMAT("elf32-littlearm")
 OUTPUT_ARCH(arm)
 TARGET(binary)
 
-INPUT(./monitor.o)
-INPUT(./boot.o)
 #ifndef SEMIHOSTING
 INPUT(./uImage)
 #ifdef USE_INITRD
