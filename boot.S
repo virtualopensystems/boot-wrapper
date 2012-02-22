@@ -9,6 +9,7 @@
 
 	.syntax	unified
 	.arch_extension sec
+	.arch_extension virt
 	.text
 
 #ifdef SEMIHOSTING
@@ -104,12 +105,34 @@ _start:
 	orr	r0, r0, r1
 	mcr	p15, 0, r0, c1, c1, 2
 
-	@ Change to NS-mode
+	@ Leave monitor.S trap in place for the transition...
 	mov	r0, #0xf0000000
 	mcr	p15, 0, r0, c12, c0, 1		@ Monitor vector base address
+
+	@ Set up hvbar so hvc comes back here.
+	ldr	r0, =vectors
+	mov	r7, #0xfffffff0
+	smc	#0				@ Set HVBAR
+
+	@ We can't call hvc from secure mode, so drop down first.
 	mov	r7, #0xffffffff
 	smc	#0				@ Change to NS-mode 
 
+	@ This is how we enter hyp mode, for booting the next stage.
+	hvc	#0
+
+/* Once we get rid of monitor.S, use these smc vectors too! */
+vectors:
+	.word 0	/* reset */
+	.word 0	/* undef */
+	.word 0 /* svc */
+	.word 0 /* pabt */
+	.word 0 /* dabt */
+	b	into_hyp_mode /* hvc */
+	.word 0 /* irq */
+	.word 0 /* fiq */
+
+into_hyp_mode:
 	@ Check CPU nr again
 	mrc	p15, 0, r0, c0, c0, 5		@ MPIDR (ARMv7 only)
 	and	r0, r0, #15			@ CPU number
@@ -485,7 +508,7 @@ sh_cmdline:
 	@ Semihosting command line will be written here
 
 #else /* not SEMIHOSTING */
-	.org	0x100
+	.org	0x200
 	@ Static ATAGS for when kernel/etc are compiled into the ELF file
 atags:
 	@ ATAG_CORE

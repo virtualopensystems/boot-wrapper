@@ -25,7 +25,7 @@
 	@
 1:
 	ldr	sp, =_monitor_stack
-	push	{r11, r12}
+	push	{r10-r12}
 
 	cmp	r7, #0xffffffff
 	beq	_non_sec
@@ -36,15 +36,20 @@
 	movnes	pc, lr
 	and	r12, r7, #0xf
 	cmp	r12, #0x0
-	popgt	{r11, r12}
+	popgt   {r10-r12}
 	movgts	pc, lr
 
 	@ Check the VMID is 0
+	mrc	p15, 0, r10, c1, c1, 0		@ SCR
+	orr	r11, r10, #1			@ SCR.NS = 1
+	mcr	p15, 0, r11, c1, c1, 0
+	isb
 	mrrc	p15, 6, r12, r11, c2
+	mcr	p15, 0, r10, c1, c1, 0		@ Restore SCR
 	lsr	r11, r11, #16
 	and	r11, r11, #0xff
 	cmp	r11, #0
-	popne	{r11, r12}
+	popne	{r10-r12}
 	movnes	pc, lr
 
 	@ Jump to the right function
@@ -68,15 +73,19 @@ _non_sec:
 	ldr	r11, =0x131
 	orr	r12, r12, r11
 	mcr	p15, 0, r12, c1, c1, 0
-	pop	{r11, r12}
+	pop	{r10-r12}
 	movs	pc, lr
 
 	@
 	@ Read/Write HVBAR
 	@
 _write_hvbar:
+	orr	r11, r10, #1			@ SCR.NS = 1 (r10 already = SCR)
+	mcr	p15, 0, r11, c1, c1, 0
+	isb
 	mcr	p15, 4, r0, c12, c0, 0
-	pop	{r11, r12}
+	mcr	p15, 0, r10, c1, c1, 0		@ Restore SCR
+	pop	{r10-r12}
 	movs	pc, lr
 
 	.ltorg
