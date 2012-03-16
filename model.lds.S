@@ -42,7 +42,7 @@ SECTIONS
  .kernel : { ./uImage }
 #endif
 
- . = PHYS_OFFSET + 0x00800000;
+ . = PHYS_OFFSET + 0x00d00000;
  filesystem = .;
 #if defined(USE_INITRD) && !defined(SEMIHOSTING)
  .filesystem : { ./filesystem.cpio.gz }
