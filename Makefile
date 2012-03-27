@@ -28,10 +28,18 @@ LD		= $(CROSS_COMPILE)ld
 # These are needed by the underlying kernel make
 export CROSS_COMPILE ARCH
 
+# Build all wrappers
 all: $(IMAGE) $(SEMIIMG)
+	true
 
-clean:
-	rm -f $(IMAGE) boot.o model.lds monitor.o uImage
+# Build just the semihosting wrapper
+semi: $(SEMIIMG)
+	true
+
+clean distclean:
+	rm -f $(IMAGE) $(SEMIIMG) \
+	boot.o model.lds monitor.o uImage \
+	bootsemi.o monitor.o modelsemi.lds
 
 $(KERNEL): $(KERNEL_SRC)/arch/arm/boot/uImage
 	cp $< $@
@@ -62,6 +70,7 @@ $(KERNEL_SRC)/arch/arm/boot/uImage: force
 
 # Pass any target we don't know about through to the kernel makefile.
 # This is a convenience rule so we can say 'make menuconfig' etc here.
+# Note that any rules in this file must have a command.
 %: force
 	$(MAKE) -C $(KERNEL_SRC) $@
 
