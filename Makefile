@@ -30,16 +30,14 @@ export CROSS_COMPILE ARCH
 
 # Build all wrappers
 all: $(IMAGE) $(SEMIIMG)
-	true
 
 # Build just the semihosting wrapper
 semi: $(SEMIIMG)
-	true
 
 clean distclean:
 	rm -f $(IMAGE) $(SEMIIMG) \
-	boot.o model.lds monitor.o uImage \
-	bootsemi.o monitor.o modelsemi.lds
+	boot.o model.lds monitor.o $(KERNEL) \
+	bootsemi.o modelsemi.lds
 
 $(KERNEL): $(KERNEL_SRC)/arch/arm/boot/uImage
 	cp $< $@
@@ -70,7 +68,8 @@ $(KERNEL_SRC)/arch/arm/boot/uImage: force
 
 # Pass any target we don't know about through to the kernel makefile.
 # This is a convenience rule so we can say 'make menuconfig' etc here.
-# Note that any rules in this file must have a command.
+# Note that any rules in this file must have a command or be marked as
+# .PHONY.
 %: force
 	$(MAKE) -C $(KERNEL_SRC) $@
 
@@ -78,4 +77,4 @@ force: ;
 
 Makefile: ;
 
-.PHONY: all clean config.mk config-default.mk
+.PHONY: all semi clean distclean config.mk config-default.mk
