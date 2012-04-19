@@ -22,36 +22,40 @@ INPUT(./uImage)
 
 PHYS_OFFSET = 0x80000000;
 MON_OFFSET  = 0xf0000000;
-
-
+STACKTOP = 0xff000000;
 
 
 SECTIONS
 {
  . = PHYS_OFFSET;
 
-#ifdef SEMIHOSTING
- .text : { bootsemi.o }
-#else
- .text : { boot.o }
-#endif
-
  . = PHYS_OFFSET + 0x8000 - 0x40;
- kernel = . + 0x40;
+
+ kernel_start = .;
+ kernel_entry = . + 0x40;
 #ifndef SEMIHOSTING
  .kernel : { ./uImage }
 #endif
+ kernel_end = .;
 
  . = PHYS_OFFSET + 0x00d00000;
- filesystem = .;
+ fs_start = .;
 #if defined(USE_INITRD) && !defined(SEMIHOSTING)
  .filesystem : { ./filesystem.cpio.gz }
- fs_size = . - filesystem;
 #endif
+ fs_end = .;
 
- .data : { *(.data) }
- .bss : { *(.bss) }
 
  . = MON_OFFSET;
  .monitor : { monitor.o }
+
+ /* Put most of the actual boot loader code up in high memory
+  * where it won't get overwritten by kernel, initrd or atags.
+  */
+ .text : { *(.text) }
+ .data : { *(.data) }
+ .bss : { *(.bss) }
+
+ . = STACKTOP;
+ stacktop = .;
 }

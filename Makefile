@@ -13,8 +13,11 @@ else
 include config-default.mk
 endif
 
+LIBFDTOBJS      = libfdt/fdt.o libfdt/fdt_ro.o libfdt/fdt_wip.o \
+		  libfdt/fdt_sw.o libfdt/fdt_rw.o libfdt/fdt_strerror.o
 MONITOR		= monitor.S
 BOOTLOADER	= boot.S
+OBJS 		= boot.o c_start.o monitor.o semihosting.o string.o semi_loader.o $(LIBFDTOBJS)
 KERNEL		= uImage
 
 IMAGE		= linux-system.axf
@@ -36,26 +39,25 @@ semi: $(SEMIIMG)
 
 clean distclean:
 	rm -f $(IMAGE) $(SEMIIMG) \
-	boot.o model.lds monitor.o $(KERNEL) \
-	bootsemi.o modelsemi.lds
+	model.lds modelsemi.lds $(OBJS) $(KERNEL)
 
 $(KERNEL): $(KERNEL_SRC)/arch/arm/boot/uImage
 	cp $< $@
 
-$(IMAGE): boot.o monitor.o model.lds $(KERNEL) $(FILESYSTEM) Makefile
-	$(LD) -o $@ --script=model.lds
+$(IMAGE): $(OBJS) model.lds $(KERNEL) $(FILESYSTEM) Makefile
+	$(LD) -o $@ $(OBJS) --script=model.lds
 
-$(SEMIIMG): bootsemi.o monitor.o modelsemi.lds
-	$(LD) -o $@ --script=modelsemi.lds
+$(SEMIIMG): $(OBJS) modelsemi.lds
+	$(LD) -o $@ $(OBJS) --script=modelsemi.lds
 
 boot.o: $(BOOTLOADER)
 	$(CC) $(CPPFLAGS) -DKCMD='$(KCMD)' -c -o $@ $<
 
-bootsemi.o: $(BOOTLOADER)
-	$(CC) $(CPPFLAGS) -DSEMIHOSTING=1 -c -o $@ $<
-
 monitor.o: $(MONITOR)
 	$(CC) $(CPPFLAGS) -c -o $@ $<
+
+%.o: %.c
+	$(CC) $(CPPFLAGS) -O2 -ffreestanding -Ilibfdt -c -o $@ $<
 
 model.lds: $(LD_SCRIPT) Makefile
 	$(CC) $(CPPFLAGS) -E -P -C -o $@ $<
