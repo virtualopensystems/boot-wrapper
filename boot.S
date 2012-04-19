@@ -12,51 +12,9 @@
 	.arch_extension virt
 	.text
 
-#ifdef SEMIHOSTING
-@ Helper definitions and macros for semihosting
-SYS_OPEN = 0x01
-SYS_CLOSE = 0x02
-SYS_WRITE0 = 0x04
-SYS_READ = 0x06
-SYS_FLEN = 0x0C
-SYS_GET_CMDLINE = 0x15
-SYS_REPORTEXC = 0x18
 
-.macro semihost what
-	@ Make a semihosting call. Note that on return r0 is always
-	@ either the return value or is trashed.
-	mov     r0, \what
-#if defined(MACH_MPS)
-	@ M profile semihosting is via bpkt
-	bkpt    0xab
-#elif defined(__thumb__)
-	@ Otherwise, different SVC numbers for ARM or Thumb mode
-	svc    0xab
-#else
-	svc     0x123456
-#endif
-.endm
-
-.macro exit
-	@ Exit via semihosting call
-	@ REASON_APP_EXIT = 0x20026
-	mov r1, 0x20000
-	orr r1, r1, 0x26
-	semihost SYS_REPORTEXC
-	@ This point is never reached.
-.endm
-
-.macro fail string
-	@ Print the message pointed to by string out via semihosting,
-	@ and then exit.
-	ldr r1, =\string
-	semihost SYS_WRITE0
-	exit
-.endm
-#endif
-
-	.globl	_start
-_start:
+	.globl	start
+start:
 #ifdef SMP
 #ifdef VEXPRESS
 	@
@@ -143,7 +101,7 @@ into_hyp_mode:
 	@ Secondary CPUs (following the RealView SMP booting protocol)
 	@
 
-	ldr	r1, =filesystem - 0x100
+	ldr	r1, =fs_start - 0x100
 	adr	r2, 1f
 	ldmia	r2, {r3 - r7}			@ move the code to a location
 	stmia	r1, {r3 - r7}			@ less likely to be overridden
@@ -180,359 +138,39 @@ into_hyp_mode:
 	orr	r1, #0x0001			@ cr
 	str	r1, [r0, #0x30]
 
-#ifdef SEMIHOSTING
+	@ Now we've got rid of the secondary CPUs, set up a stack
+	@ for CPU 0 so we can write most of this in C.
+	ldr     sp, =stacktop
+
+	@ And call the C entrypoint
+	bl      c_start
+	@ Never reached
+1:	b 1b
+
 	@
-	@ Get kernel, initrd, command line via semihosting
+	@ Function for C code to make semihosting calls:
 	@
-
-	mov     r0, SYS_GET_CMDLINE
-	ldr     r1, =semiblk
-	ldr     r2, =sh_cmdline
-	str     r2, [r1]
-	@ We have huge amounts of space between us and where we're
-	@ going to put the kernel, so we can allow for an enormous
-	@ command line length.
-	mov     r3, 0x2000
-	str     r3, [r1, #4]
-	semihost SYS_GET_CMDLINE
-	cmp     r0, 0
-	bne     1f
-	ldr     r3, [r1, #4]
-	cmp     r3, 0x2000
-	blt     2f
-1:
-	@ Failed to get command line, or truncated
-	fail get_cmd_failed
-
-2:
-	@ That gives us one big NUL terminated string.
-	@ We expect:
-	@ --kernel kernelfilename
-	@ --initrd initrdfilename
-	@ --
-	@ and the remainder of the string is kernel args
-
-	@ r2 is still the command line here
-1:
-	@ Skip any leading whitespace, stop if we hit the end
-	ldrb r0, [r2]
-	cmp r0, 32
-	bne 2f
-	add r2, r2, 1
-	b 1b
-2:
-	cmp r0, 0
-	bne 3f
-	@ If we hit the end of the string before '--' it's invalid
-	fail bad_cmd_line
-3:
-	ldr r1, =dashdashkernel
-	bl matchword
-	cmp r0, 0
-	beq 2f
-	@ found --kernel, r2 points at next word
-	@ load at offset -0x40 to allow for uImage header
-	ldr r1, =kernel
-	sub r1, r1, 0x40
-	bl loadfile
-	b 1b
-
-2:
-	adr r1, dashdashinitrd
-	bl matchword
-	cmp r0, 0
-	beq 2f
-	@ found --initrd, r2 points at next word
-	ldr r1, =filesystem
-	bl loadfile
-	@ now r3 is length of the initrd, fix up our ATAGS
-	ldr r1, =atag_initrd_sz
-	str r3, [r1]
-	b 1b
-
-2:
-	adr r1, dashdash
-	bl matchword
-	cmp r0, 0
-	beq 2f
-	@ found --, r2 points at next word
-	@ handle rest of string (if any) as kernel args
-	@ If we didn't have an initrd, write the ATAG_CMDLINE
-	@ over the top of the ATAG_INITRD2
-	ldr r0, =atag_cmdline
-	ldr r4, [r0, #4]   @ ATAG_CMDLINE magic number
-	ldr r1, =atag_initrd_sz
-	ldr r1, [r1]
-	cmp r1, 0
-        itt eq
-	ldreq r0, =atag_initrd
-	streq r4, [r0, #4]
-	add r3, r0, #8
-	@ copy string from r2 to r3
-1:      ldrb r1, [r2],#1
-	strb r1, [r3],#1
-	cmp r1, 0
-	bne 1b
-	@ zero-pad to word boundary
-1:      tst r3, #3
-	beq 1f
-	strb r1, [r3],#1
-	b 1b
-1:      @ now write the length word
-	sub r4, r3, r0
-	lsr r4, r4, #2
-	str r4, [r0]
-	@ and terminate the ATAGS list with an ATAG_NONE node
-	str r1, [r3, #0]
-	str r1, [r3, #4]
-
-	b run_kernel
-
-2:
-	@ unrecognised option
-	fail bad_cmd_line
-
-matchword:
-	@ Subroutine: if the first word (up to space or end)
-	@ in the string r2 matches the word pointed at by r1
-	@ then return with r0 != 0 and r2 pointing at the
-	@ space/end. Otherwise return with r0 = 0, r2 unchanged.
-	mov r3, r2
-1:
-	ldrb r0, [r2]
-	ldrb r4, [r1]
-	cmp r4, 0
-	beq 1f
-	cmp r4, r0
-	bne matchfail
-	add r2, r2, 1
-	add r1, r1, 1
-	b 1b
-1:
-	@ end of matched string, is r2 at end of word?
-	cmp r0, 32
-        itt ne
-	cmpne r0, 0
-	bne matchfail
-	@ Success
-	mov r0, 1
-	bx lr
-1:      @ not end of string, match?
-matchfail:
-	mov r2, r3
-	mov r0, 0
-	bx lr
-
-loadfile:
-	@ Subroutine: r2 points to a filename argument (possibly with
-	@ leading spaces, space or NUL terminated), r1 is the address
-	@ to load it at. Load the file via semihosting to the
-	@ specified address. On exit r2 points to the space/NUL
-	@ after the filename, and r3 is the length of the file in bytes
-	@ We modify the filename string in place, temporarily
-	mov r5, r1
-	adr r1, loading_str
-	semihost SYS_WRITE0
-	@ skip leading spaces
-1:      ldrb r0, [r2]
-	cmp r0, 32
-	bne 1f
-	add r2, r2, 1
-	b 1b
-1:      mov r3, r2
-	@ advance until next space or NUL
-1:      ldrb r0, [r2]
-	cmp r0, 32
-        ite ne
-	cmpne r0, 0
-	beq 1f
-	add r2, r2, 1
-	b 1b
-1:      @ filename is r3 to r2, save terminating byte and nul terminate
-	mov r4, r0
-	mov r0, 0
-	strb r0, [r2]
-	mov r1, r3
-	semihost SYS_WRITE0
-	adr r1, colonspace_str
-	semihost SYS_WRITE0
-	adr r1, semiblk
-	str r3, [r1]     @ filename
-	mov r0, 1
-	str r0, [r1, #4] @ file mode: "rb"
-	subs r0, r2, r3
-	bne 1f
-	fail nofilename
-1:      str r0, [r1, #8] @ file name length
-	semihost SYS_OPEN
-	cmp r0, -1
-	bne 1f
-	fail openfailed
-1:      @ now we can restore the terminating byte
-	strb r4, [r2]
-	mov r4, r0
-	str r0, [r1]     @ filehandle
-	semihost SYS_FLEN
-	cmp r0, -1
-	bne 1f
-	fail flenfailed
-1:      adr r1, semiblk
-	mov r3, r0
-	str r4, [r1]     @ filehandle
-	str r5, [r1, #4] @ buffer
-	str r0, [r1, #8] @ length
-	semihost SYS_READ
-	cmp r0, 0
-	beq 1f
-	fail readfailed
-1:      adr r1, semiblk
-	str r4, [r1]
-	semihost SYS_CLOSE
-	cmp r0, 0
-	beq 1f
-	fail closefailed
-1:      @ Success! r2 is pointing to the space/NUL after the filename,
-	@ r3 is the length of the file in bytes
-	adr r1, ok_str
-	semihost SYS_WRITE0
-	bx lr
-
-#endif
-run_kernel:
-	@
-	@ Kernel parameters
-	@
-	mov	r0, #0
-#ifdef MACH_MPS
-	ldr	r1, =10000			@ MPS (temporary)
-#elif defined (VEXPRESS)
-	ldr	r1, =2272			@ Versatile Express
+	.globl __semi_call
+__semi_call:
+#if defined(MACH_MPS)
+	@ M profile semihosting is via bpkt
+	bkpt    0xab
+#elif defined(__thumb__)
+	@ Otherwise, different SVC numbers for ARM or Thumb mode
+	svc    0xab
 #else
-	ldr	r1, =827			@ RealView/EB
+	svc     0x123456
 #endif
-	adr	r2, atags
-	mov	r3, #0
-	ldr	lr, =kernel
-#ifdef THUMB2_KERNEL
-	orr	lr, lr, #1			@ Thumb-2 kernel
-#endif
-	mov     pc, lr				@ jump to the kernel
-
+	mov pc, lr
 
 	@
 	@ Data
 	@
-
-#ifdef SEMIHOSTING
-	.org 0x500
-	@ Put the constant pool here as otherwise the assembler will
-	@ put it immediately after our atags and it will be overwritten
-	@ by the semihosting command line.
-	.ltorg
-
-	@ block of four words used to pass/return values in semihosting calls
-	.align 2
-semiblk:
-	.long 0,0,0,0
-
-dashdashkernel:
-	.asciz "--kernel"
-	.align 2
-dashdashinitrd:
-	.asciz "--initrd"
-	.align 2
-dashdash:
-	.asciz "--"
-	.align 2
-
-get_cmd_failed:
-	.asciz "Failed to get semihosting command line\n"
-	.align 2
-bad_cmd_line:
-	.asciz "Bad command line format (unknown option?)\n"
-	.align 2
-nofilename:
-	.asciz "Expected filename argument\n"
-	.align 2
-openfailed:
-	.asciz "open failed!\n"
-	.align 2
-flenfailed:
-	.asciz "could not find length of file!\n"
-	.align 2
-readfailed:
-	.asciz "could not read file!\n"
-	.align 2
-closefailed:
-	.asciz "could not close file!\n"
-	.align 2
-loading_str:
-	.asciz "Loading: "
-	.align 2
-colonspace_str:
-	.asciz ": "
-	.align 2
-ok_str:
-	.asciz "OK\n"
-	.align 2
-atags:
-	@ Template for our ATAGs: we will edit these: the INITRD2
-	@ is optional and the CMDLINE will be expanded to include
-	@ the actual command line.
-	@ The important thing here is that any editing we do
-	@ to the template should only make it shorter, so we
-	@ don't accidentally overwrite the semihosting commandline
-	@ until the very end when we copy the tail end of the
-	@ semihosting command line into the ATAG_CMDLINE node
-	@ as the kernel parameters.
-
-	@ ATAG_CORE
-	.long 2
-	.long 0x54410001
-
-	@ ATAG_INITRD2
-atag_initrd:
-	.long	4
-	.long	0x54420005
-	.long	filesystem    @ address
-atag_initrd_sz:
-	.long	0        @ size
-
-	@ ATAG_CMDLINE
-atag_cmdline:
-	.long 0          @ length
-	.long 0x54410009
-	@ command line string will start here
-
-sh_cmdline:
-	@ Semihosting command line will be written here
-
-#else /* not SEMIHOSTING */
-	.org	0x200
-	@ Static ATAGS for when kernel/etc are compiled into the ELF file
-atags:
-	@ ATAG_CORE
-	.long	2
-	.long	0x54410001
-
-	@ ATAG_CMDLINE
-	.long	(1f - .) >> 2
-	.long	0x54410009
-        /* The kernel boot command line is defined in the Make system */
-        .asciz KCMD
-	.align	2
-1:
-
-#ifdef USE_INITRD
-	@ ATAG_INITRD2
-	.long	4
-	.long	0x54420005
-	.long	filesystem
-	.long	fs_size
+	/* The kernel boot command line for builtin kernels is defined in the Make system */
+	.globl kernel_cmd
+	.globl kernel_cmd_end
+kernel_cmd:
+#ifdef KCMD
+	.asciz KCMD
 #endif
-
-	@ ATAG_NONE
-	.long	0
-	.long	0x00000000
-
-#endif /* not SEMIHOSTING */
+kernel_cmd_end:
