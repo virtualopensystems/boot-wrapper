@@ -499,13 +499,13 @@ args_done:
 
 	/* load the FDT, if specified */
 
-	if(fdt_arg) {
+	if(dtb_arg) {
 		phys = ALIGN(phys, 4);
 		info->fdt_start = (unsigned)phys;
 
-		load_file_essential(&phys, fdt_arg, NULL,
+		load_file_essential(&phys, dtb_arg, NULL,
 			"Failed to load device tree blob");
-		info("Loaded FDT: ", fdt_arg, "\n");
+		info("Loaded FDT: ", dtb_arg, "\n");
 
 		info->fdt_size = (unsigned)phys - info->fdt_start;
 	}
