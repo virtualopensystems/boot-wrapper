@@ -9,6 +9,7 @@
  */
 
 #.syntax	unified
+	.arch_extension virt
 	.section monitor, "x"
 
 	.word 0
@@ -20,6 +21,25 @@
 	.word 0
 	.word 0
 
+	.align 5
+vect_hyp:
+	nop
+	nop
+	nop
+	nop
+	nop
+	b	set_hvbar
+	nop
+	nop
+
+set_hvbar:
+	mrc	p15, 4, r12, c5, c2, 0	@ HSR
+	lsl	r12, r12, #16
+	lsr	r12, r12, #16
+	cmp	r12, #0xff
+	mcreq	p15, 4, r0, c12, c0, 0	@ HVBAR
+	eret
+
 	@
 	@ Secure Monitor Call
 	@
@@ -27,55 +47,25 @@
 	ldr	sp, =_monitor_stack
 	push	{r11, r12}
 
-	cmp	r7, #0xffffffff
-	beq	_non_sec
-
-	@ Check smc number and VMID
-	bic	r12, r7, #0xf
-	cmp	r12, #0xfffffff0
-	movnes	pc, lr
-	and	r12, r7, #0xf
-	cmp	r12, #0x0
-	popgt	{r11, r12}
-	movgts	pc, lr
-
-	@ Check the VMID is 0
-	mrrc	p15, 6, r12, r11, c2
-	lsr	r11, r11, #16
-	and	r11, r11, #0xff
-	cmp	r11, #0
-	popne	{r11, r12}
-	movnes	pc, lr
-
-	@ Jump to the right function
-	and	r12, r7, #0xf
-	adr	r11, _hyp_funcs
-	add	r11, r11, r12, lsl #2
-	ldr	pc, [r11]
-
-	@
-	@ Jump table for the SMC hypervisor API calls
-	@
-_hyp_funcs:
-	.long	_write_hvbar
-
 	@
 	@ Switch to non-secure mode
 	@
-_non_sec:
 	mrc	p15, 0, r12, c1, c1, 0		@ Secure configuration register
 	bic	r12, r12, #0x07f
 	ldr	r11, =0x131
 	orr	r12, r12, r11
 	mcr	p15, 0, r12, c1, c1, 0
-	pop	{r11, r12}
-	movs	pc, lr
-
+#if 0
+	ldr	r11, =0x2c094000
+	mov	r12, #0
+	str	r12, [r11]
+	dsb
+#endif
 	@
 	@ Read/Write HVBAR
 	@
-_write_hvbar:
-	mcr	p15, 4, r0, c12, c0, 0
+	ldr	r11, =vect_hyp
+	mcr	p15, 4, r11, c12, c0, 0
 	pop	{r11, r12}
 	movs	pc, lr
 

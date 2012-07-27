@@ -107,8 +107,9 @@ _start:
 	@ Change to NS-mode
 	mov	r0, #0xf0000000
 	mcr	p15, 0, r0, c12, c0, 1		@ Monitor vector base address
-	mov	r7, #0xffffffff
-	smc	#0				@ Change to NS-mode 
+	isb
+
+	smc	#0				@ Change to NS-mode, set HVBAR
 
 	@ Check CPU nr again
 	mrc	p15, 0, r0, c0, c0, 5		@ MPIDR (ARMv7 only)
