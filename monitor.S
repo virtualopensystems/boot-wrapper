@@ -33,11 +33,9 @@ vect_hyp:
 	nop
 
 set_hvbar:
-	mrc	p15, 4, r12, c5, c2, 0	@ HSR
-	lsl	r12, r12, #16
-	lsr	r12, r12, #16
-	cmp	r12, #0xff
-	mcreq	p15, 4, r0, c12, c0, 0	@ HVBAR
+	mrs	r12, cpsr
+	orr	r12, r12, #0x1c0	@ Set A, I and F.
+	msr	spsr_cxsf, r12
 	eret
 
 	@

@@ -9,6 +9,7 @@
 
 	.syntax	unified
 	.arch_extension sec
+	.arch_extension virt
 	.text
 
 #ifdef SEMIHOSTING
@@ -110,6 +111,7 @@ _start:
 	isb
 
 	smc	#0				@ Change to NS-mode, set HVBAR
+	hvc	#0				@ Enter HYP mode
 
 	@ Check CPU nr again
 	mrc	p15, 0, r0, c0, c0, 5		@ MPIDR (ARMv7 only)
