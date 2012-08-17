@@ -103,6 +103,7 @@ static void update_fdt(void **dest, struct loader_info *info)
 	int _chosen;
 	void *fdt;
 	uint32_t const *p;
+	int addrcells, sizecells;
 
 	if(!info->fdt_start)
 		return;
@@ -113,17 +114,21 @@ static void update_fdt(void **dest, struct loader_info *info)
 
 	/*
 	 * Sanity-check address sizes, since addresses and sizes which do
-	 * not take up exactly 4 bytes are not supported.
+	 * not take up exactly 4 or 8 bytes are not supported.
 	 */
 	{
 		if(!(p = fdt_getprop(fdt, 0, "#address-cells", &e)))
 			goto libfdt_error;
-		else if(e != 4 || fdt32_to_cpu(*p) != 1)
+		else if(e != 4)
 			goto size_error;
-
+		addrcells = fdt32_to_cpu(*p);
 		if(!(p = fdt_getprop(fdt, 0, "#size-cells", &e)))
 			goto libfdt_error;
-		else if(e != 4 || fdt32_to_cpu(*p) != 1)
+		else if(e != 4)
+			goto size_error;
+		sizecells = fdt32_to_cpu(*p);
+		if ((addrcells != 1 && addrcells != 2) ||
+		    (sizecells != 1 && sizecells != 2))
 			goto size_error;
 	}
 
@@ -137,7 +142,7 @@ static void update_fdt(void **dest, struct loader_info *info)
 	{
 		int offset, depth = 0;
 		int _memory;
-		uint32_t reg[2];
+		uint32_t reg[4];
 
 		for(offset = fdt_next_node(fdt, 0, &depth); offset >= 0;
 				offset = fdt_next_node(fdt, offset, &depth)) {
@@ -153,7 +158,10 @@ static void update_fdt(void **dest, struct loader_info *info)
 				if(e < 0)
 					goto libfdt_error;
 
-				if(fdt32_to_cpu(p[1]) != 0)
+				/* Check whether the <size> part of the <addr>,<size> tuple is nonzero */
+				if(fdt32_to_cpu(p[addrcells]) != 0)
+					goto no_add_memory;
+				if(sizecells == 2 && fdt32_to_cpu(p[addrcells + 1]) != 0)
 					goto no_add_memory;
 			}
 		}
@@ -162,9 +170,15 @@ static void update_fdt(void **dest, struct loader_info *info)
 			goto libfdt_error;
 		_memory = e;
 
-		reg[0] = cpu_to_fdt32(PHYS_OFFSET);
-		reg[1] = cpu_to_fdt32(PHYS_SIZE);
-		if((e = fdt_setprop(fdt, _memory, "reg", &reg, sizeof reg)) < 0)
+		/* This assumes PHYS_OFFSET and PHYS_SIZE are 32 bits, though
+		 * the fdt cells we put them in may not be.
+		 */
+		reg[0] = reg[1] = reg[2] = reg[3] = 0;
+		reg[addrcells - 1] = cpu_to_fdt32(PHYS_OFFSET);
+		reg[addrcells + sizecells - 1] = cpu_to_fdt32(PHYS_SIZE);
+		
+		if((e = fdt_setprop(fdt, _memory, "reg", &reg,
+				    sizeof(reg[0]) * (addrcells + sizecells))) < 0)
 			goto libfdt_error;
 
 		if((e = fdt_setprop_string(fdt, _memory, "device_type",
@@ -186,7 +200,10 @@ no_add_memory:
 
 	if(info->initrd_start) {
 		uint32_t initrd_end = info->initrd_start + info->initrd_size;
-
+		/* It's not documented whether these cells should honour
+		 * #address-cells. Currently the kernel accepts them as being
+		 * addresses of either size, so we leave them as 32 bits for now.
+		 */
 		if((e = fdt_setprop_cell(fdt, _chosen, "linux,initrd-start",
 					info->initrd_start)) < 0)
 			goto libfdt_error;
