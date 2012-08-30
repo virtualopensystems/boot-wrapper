@@ -299,12 +299,29 @@ static void load_file_essential(void **dest, char const *filename,
 		fatal(failmsg, ": \"", filename, "\"\n");
 }
 
+/* is_uboot_image_format - to check an image is in uboot image format or not
+ * @start: start address of the image
+ * @size:  size of the image
+ *
+ * Returns:
+ *  0: no
+ *  1: yes
+ */
+static int is_uboot_image_format(const char *start, const unsigned size)
+{
+	if(size <= UBOOT_IMAGE_HEADER_SIZE)
+		return 0;
+
+	return !memcmp(start, uboot_image_header_magic,
+					 sizeof uboot_image_header_magic);
+}
+
 /* Move the kernel if necessary, based on the image type: */
 static void correct_kernel_location(struct loader_info *info)
 {
 	char *const text_start = (char *)(PHYS_OFFSET + TEXT_OFFSET);
 	char *const text_end = text_start + info->kernel_size;
-	char *const uImage_payload = text_start + UIMAGE_HEADER_SIZE;
+	char *const uImage_payload = text_start + UBOOT_IMAGE_HEADER_SIZE;
 	unsigned long *const zImage_magic_p = (unsigned long *)(
 		uImage_payload + ZIMAGE_MAGIC_OFFSET);
 
@@ -312,10 +329,7 @@ static void correct_kernel_location(struct loader_info *info)
 	 * If the image is not a uImage, then it is a raw Image or zImage,
 	 * and no action is necessary:
 	 */
-	if(info->kernel_size <= UIMAGE_HEADER_SIZE)
-		return;
-
-	if(memcmp(text_start, uImage_magic, sizeof uImage_magic))
+	if(!is_uboot_image_format(text_start, info->kernel_size))
 		return;
 
 	warn("Ignoring uImage meta-data\n");
@@ -328,7 +342,7 @@ static void correct_kernel_location(struct loader_info *info)
 	 */
 	if(text_end >= (char *)&zImage_magic_p[1]
 			&& *zImage_magic_p == ZIMAGE_MAGIC) {
-		info->kernel_entry += UIMAGE_HEADER_SIZE;
+		info->kernel_entry += UBOOT_IMAGE_HEADER_SIZE;
 		return;
 	}
 
@@ -337,7 +351,23 @@ static void correct_kernel_location(struct loader_info *info)
 	 * leave the entry point unmodified.
 	 */
 	memmove(text_start, uImage_payload,
-		info->kernel_size - UIMAGE_HEADER_SIZE);
+		info->kernel_size - UBOOT_IMAGE_HEADER_SIZE);
+}
+
+static void correct_initrd_location(struct loader_info *info)
+{
+	/*
+	 * if initrd image is in u-boot image format,
+	 * move initrd_start and initrd_size to ignore the header
+	 */
+	if(is_uboot_image_format((char *)info->initrd_start,
+							info->initrd_size)) {
+		warn("Ignoring uInitrd meta-data\n");
+		info->initrd_start += UBOOT_IMAGE_HEADER_SIZE;
+		info->initrd_size -= UBOOT_IMAGE_HEADER_SIZE;
+	}
+
+	return;
 }
 
 static char semi_cmdline[SEMI_CMDLINE_MAX];
@@ -496,8 +526,14 @@ args_done:
 			"Failed to load initrd image");
 		info("Loaded initrd: ", initrd_arg, "\n");
 
-		info->initrd_start = atag.initrd.start = start;
-		info->initrd_size = atag.initrd.size = (unsigned)phys - start;
+		info->initrd_start = start;
+		info->initrd_size = (unsigned)phys - start;
+
+		correct_initrd_location(info);
+
+		atag.initrd.start = info->initrd_start;
+		atag.initrd.size = info->initrd_size;
+
 	} else if(info->initrd_size) {
 		if(noinitrd_arg) {
 			info->initrd_size = 0;

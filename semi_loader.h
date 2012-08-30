@@ -46,10 +46,10 @@ struct atag_initrd2 {
 	unsigned size;
 };
 
-static const char uImage_magic[] = {
+static const char uboot_image_header_magic[] = {
 	0x27, 0x05, 0x19, 0x56
 };
-#define UIMAGE_HEADER_SIZE 0x40
+#define UBOOT_IMAGE_HEADER_SIZE 0x40
 
 #define ZIMAGE_MAGIC_OFFSET 36
 #define ZIMAGE_MAGIC 0x016f2818UL
