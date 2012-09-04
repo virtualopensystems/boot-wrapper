@@ -57,7 +57,7 @@ monitor.o: $(MONITOR)
 	$(CC) $(CPPFLAGS) -c -o $@ $<
 
 %.o: %.c
-	$(CC) $(CPPFLAGS) -O2 -ffreestanding -Ilibfdt -c -o $@ $<
+	$(CC) $(CPPFLAGS) -O2 -ffreestanding -I. -Ilibfdt -c -o $@ $<
 
 model.lds: $(LD_SCRIPT) Makefile
 	$(CC) $(CPPFLAGS) -E -P -C -o $@ $<
