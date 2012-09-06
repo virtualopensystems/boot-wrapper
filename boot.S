@@ -12,6 +12,15 @@
 	.arch_extension virt
 	.text
 
+.macro enter_hyp
+	@ We can't call hvc from secure mode, so drop down first.
+	mov	r7, #0xffffffff
+	smc	#0				@ Change to NS-mode
+
+	@ This is how we enter hyp mode, for booting the next stage.
+	hvc	#0
+.endm
+
 .align 5
 /* Once we get rid of monitor.S, use these smc vectors too! */
 hyp_vectors:
@@ -20,9 +29,13 @@ hyp_vectors:
 	.word 0 /* svc */
 	.word 0 /* pabt */
 	.word 0 /* dabt */
-	b	into_hyp_mode /* hvc */
+	b	1f
 	.word 0 /* irq */
 	.word 0 /* fiq */
+
+/* Return directly back to the caller without leaving Hyp mode: */
+1:	mrs	lr, elr_hyp
+	mov	pc, lr
 
 	.globl	start
 start:
@@ -83,14 +96,8 @@ start:
 	mov	r7, #0xfffffff0
 	smc	#0				@ Set HVBAR
 
-	@ We can't call hvc from secure mode, so drop down first.
-	mov	r7, #0xffffffff
-	smc	#0				@ Change to NS-mode 
+	enter_hyp
 
-	@ This is how we enter hyp mode, for booting the next stage.
-	hvc	#0
-
-into_hyp_mode:
 	@ Check CPU nr again
 	mrc	p15, 0, r0, c0, c0, 5		@ MPIDR (ARMv7 only)
 	and	r0, r0, #15			@ CPU number
