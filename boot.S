@@ -96,8 +96,6 @@ start:
 	mov	r7, #0xfffffff0
 	smc	#0				@ Set HVBAR
 
-	enter_hyp
-
 	@ Check CPU nr again
 	mrc	p15, 0, r0, c0, c0, 5		@ MPIDR (ARMv7 only)
 	and	r0, r0, #15			@ CPU number
@@ -107,6 +105,7 @@ start:
 	@
 	@ Secondary CPUs (following the RealView SMP booting protocol)
 	@
+	enter_hyp
 
 	ldr	r1, =fs_start - 0x100
 	adr	r2, 1f
@@ -169,6 +168,17 @@ __semi_call:
 	svc     0x123456
 #endif
 	mov pc, lr
+
+.globl __boot_kernel
+__boot_kernel:
+	mov	r4, r0
+	stmfd	sp!, {r1-r3}
+	ldmia	sp, {r0-r3}
+
+	enter_hyp
+
+	bx	r4
+.type __boot_kernel, %function
 
 	@
 	@ Data

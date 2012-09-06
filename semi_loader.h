@@ -90,10 +90,12 @@ struct loader_info {
 
 void load_kernel(struct loader_info *info);
 
+void __boot_kernel(unsigned entry_point,
+			unsigned r0, unsigned r1, unsigned r2, unsigned r3);
+
 static void boot_kernel(struct loader_info *info,
 		unsigned r0, unsigned r1, unsigned r2, unsigned r3) {
-	((void (*)(unsigned, unsigned, unsigned, unsigned))info->kernel_entry)(
-		r0, r1, r2, r3);
+	__boot_kernel(info->kernel_entry, r0, r1, r2, r3);
 }
 
 #endif /* ! SEMI_LOADER_H */
