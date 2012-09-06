@@ -12,6 +12,17 @@
 	.arch_extension virt
 	.text
 
+.align 5
+/* Once we get rid of monitor.S, use these smc vectors too! */
+hyp_vectors:
+	.word 0	/* reset */
+	.word 0	/* undef */
+	.word 0 /* svc */
+	.word 0 /* pabt */
+	.word 0 /* dabt */
+	b	into_hyp_mode /* hvc */
+	.word 0 /* irq */
+	.word 0 /* fiq */
 
 	.globl	start
 start:
@@ -68,7 +79,7 @@ start:
 	mcr	p15, 0, r0, c12, c0, 1		@ Monitor vector base address
 
 	@ Set up hvbar so hvc comes back here.
-	ldr	r0, =vectors
+	ldr	r0, =hyp_vectors
 	mov	r7, #0xfffffff0
 	smc	#0				@ Set HVBAR
 
@@ -78,17 +89,6 @@ start:
 
 	@ This is how we enter hyp mode, for booting the next stage.
 	hvc	#0
-
-/* Once we get rid of monitor.S, use these smc vectors too! */
-vectors:
-	.word 0	/* reset */
-	.word 0	/* undef */
-	.word 0 /* svc */
-	.word 0 /* pabt */
-	.word 0 /* dabt */
-	b	into_hyp_mode /* hvc */
-	.word 0 /* irq */
-	.word 0 /* fiq */
 
 into_hyp_mode:
 	@ Check CPU nr again
