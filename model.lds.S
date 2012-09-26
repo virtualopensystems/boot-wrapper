@@ -47,8 +47,6 @@ SECTIONS
 
 
  . = MON_OFFSET;
- .monitor : { monitor.o }
-
  /* Put most of the actual boot loader code up in high memory
   * where it won't get overwritten by kernel, initrd or atags.
   */

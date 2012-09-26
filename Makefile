@@ -15,9 +15,8 @@ endif
 
 LIBFDTOBJS      = libfdt/fdt.o libfdt/fdt_ro.o libfdt/fdt_wip.o \
 		  libfdt/fdt_sw.o libfdt/fdt_rw.o libfdt/fdt_strerror.o
-MONITOR		= monitor.S
 BOOTLOADER	= boot.S
-OBJS 		= boot.o c_start.o monitor.o semihosting.o string.o semi_loader.o $(LIBFDTOBJS)
+OBJS 		= boot.o c_start.o semihosting.o string.o semi_loader.o $(LIBFDTOBJS)
 KERNEL		= uImage
 
 IMAGE		= linux-system.axf
@@ -52,9 +51,6 @@ $(SEMIIMG): $(OBJS) modelsemi.lds
 
 boot.o: $(BOOTLOADER)
 	$(CC) $(CPPFLAGS) -DKCMD='$(KCMD)' -c -o $@ $<
-
-monitor.o: $(MONITOR)
-	$(CC) $(CPPFLAGS) -c -o $@ $<
 
 %.o: %.c
 	$(CC) $(CPPFLAGS) -O2 -ffreestanding -I. -Ilibfdt -c -o $@ $<

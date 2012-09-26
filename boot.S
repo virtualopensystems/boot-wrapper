@@ -13,20 +13,30 @@
 	.text
 
 .macro enter_hyp
-	@ We can't call hvc from secure mode, so drop down first.
-	mov	r7, #0xffffffff
-	smc	#0				@ Change to NS-mode
-
-	@ This is how we enter hyp mode, for booting the next stage.
+	@ We assume we're entered in Secure Supervisor mode. To
+	@ get to Hyp mode we have to pass through Monitor mode
+	@ and NS-Supervisor mode. Note that there is no way to
+	@ return to the Secure world once we've done this.
+	@
+	@ This will trash r10 and r11.
+	ldr	r10, =vectors
+	mcr	p15, 0, r10, c12, c0, 1		@ Monitor vector base address
+	@ Switch to monitor mode, which will set up the HVBAR and
+	@ then return to us in NS-SVC
+	smc	#0
+	@ Now we're in NS-SVC, make a Hyp call to get into Hyp mode
 	hvc	#0
+	@ We will end up here in NS-Hyp.
 .endm
 
 .align 5
-/* Once we get rid of monitor.S, use these smc vectors too! */
-hyp_vectors:
+/* We use the same vector table for Hyp and Monitor mode, since
+ * we will only use each once and they don't overlap.
+ */
+vectors:
 	.word 0	/* reset */
 	.word 0	/* undef */
-	.word 0 /* svc */
+	b	2f /* smc */
 	.word 0 /* pabt */
 	.word 0 /* dabt */
 	b	1f
@@ -36,6 +46,28 @@ hyp_vectors:
 /* Return directly back to the caller without leaving Hyp mode: */
 1:	mrs	lr, elr_hyp
 	mov	pc, lr
+
+/* In monitor mode, set up HVBAR and SCR then return to caller in NS-SVC. */
+2:
+	@ Set up HVBAR
+	mrc	p15, 0, r10, c1, c1, 0		@ SCR
+	@ Set SCR.NS=1 (needed for setting HVBAR and also returning to NS state)
+	@        .IRQ,FIQ,EA=0 (don't take aborts/exceptions to Monitor mode)
+	@        .FW,AW=1 (CPSR.A,F modifiable in NS state)
+	@        .nET=0 (early termination OK)
+	@        .SCD=1 (SMC in NS mode is UNDEF, so accidental SMCs don't
+	@                cause us to leap back into this code confusingly)
+	@        .HCE=1 (HVC does Hyp call)
+	bic	r10, r10, #0x07f
+	ldr	r11, =0x1b1
+	orr	r10, r10, r11
+	mcr	p15, 0, r11, c1, c1, 0
+	isb
+	ldr	r11, =vectors
+	mcr	p15, 4, r11, c12, c0, 0		@ set HVBAR
+	@ ...and return to calling code in NS state
+	movs	pc, lr
+
 
 	.globl	start
 start:
@@ -86,15 +118,6 @@ start:
 	ldr	r1, =0x43fff
 	orr	r0, r0, r1
 	mcr	p15, 0, r0, c1, c1, 2
-
-	@ Leave monitor.S trap in place for the transition...
-	mov	r0, #0xf0000000
-	mcr	p15, 0, r0, c12, c0, 1		@ Monitor vector base address
-
-	@ Set up hvbar so hvc comes back here.
-	ldr	r0, =hyp_vectors
-	mov	r7, #0xfffffff0
-	smc	#0				@ Set HVBAR
 
 	@ Check CPU nr again
 	mrc	p15, 0, r0, c0, c0, 5		@ MPIDR (ARMv7 only)
