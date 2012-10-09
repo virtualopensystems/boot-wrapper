@@ -242,6 +242,61 @@ libfdt_error:
 	fatal("libfdt: ", fdt_strerror(e), ", while updating device tree\n");
 }
 
+/* For accessing 32-bit device ports */
+#define io32(p) (*(volatile uint32_t *)(p))
+
+static void init_cci(unsigned cci)
+{
+	info("Initialising CCI\n");
+
+	/*
+	 * Ideally, the CCI device tree binding would include suitable
+	 * information so we can correctly configure the CCI, but for
+	 * now we'll just hard-code settings for the present A15xA7
+	 * models.
+	 */
+
+	/* Turn on CCI snoops and DVM messages */
+	io32(cci+0x4000) = 0x3;   /* A15 cluster */
+	io32(cci+0x5000) = 0x3;   /* A7 cluster */
+
+	/* Wait while change pending bit of status register is set */
+	while(io32(cci+0xc) & 0x1)
+		{}
+}
+
+static void configure_from_fdt(struct loader_info *info)
+{
+	void *fdt = (void *)info->fdt_start;
+	uint32_t const *p;
+	int addrcells, sizecells;
+	int offset, len;
+
+	if(!fdt)
+		return;
+
+	_fdt_address_and_size_cells(fdt, &addrcells, &sizecells);
+
+	/* See if there is a CCI device to initialise */
+	offset = fdt_node_offset_by_compatible(fdt, 0, "arm,cci");
+	if (offset >= 0) {
+		p = fdt_getprop(fdt, offset, "reg", &len);
+		if(len != (addrcells + sizecells) * 4)
+			info("Failed parsing device-tree node for CCI\n");
+		else {
+			/*
+			 * p[addrcells - 1] is the least significant 32-bits of
+			 * the address for the CCI. On 32-bit CPUs any additional
+			 * address bits had  better be zero otherwise we can't
+			 * access it as we don't enable the MMU.
+			 */
+			init_cci(fdt32_to_cpu(p[addrcells - 1]));
+		}
+	}
+
+	return;
+}
+
 static int is_space(char c)
 {
 	return c == ' ';
@@ -598,4 +653,6 @@ args_done:
 	atag_append(&atagp, ATAG_NONE, 0, 0);
 
 	update_fdt(&phys, info);
+
+	configure_from_fdt(info);
 }
