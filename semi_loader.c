@@ -97,6 +97,39 @@ static int _fdt_make_node(void *fdt, int parentoffset, const char *name)
 	return fdt_add_subnode(fdt, parentoffset, name);
 }
 
+static void _fdt_address_and_size_cells(void *fdt, int *addrcells, int *sizecells)
+{
+	int e;
+	uint32_t const *p;
+
+	if(!(p = fdt_getprop(fdt, 0, "#address-cells", &e)))
+		goto libfdt_error;
+	if(e != 4)
+		goto size_error;
+	*addrcells = fdt32_to_cpu(*p);
+	if(!(p = fdt_getprop(fdt, 0, "#size-cells", &e)))
+		goto libfdt_error;
+	if(e != 4)
+		goto size_error;
+	*sizecells = fdt32_to_cpu(*p);
+
+	/*
+	 * Sanity-check address sizes, since addresses and sizes which do
+	 * not take up exactly 4 or 8 bytes are not supported.
+	 */
+	if ((*addrcells != 1 && *addrcells != 2) ||
+	    (*sizecells != 1 && *sizecells != 2))
+		goto size_error;
+
+	return;
+
+libfdt_error:
+	fatal("libfdt: ", fdt_strerror(e), ", while looking for #address-cells/#size-cells\n");
+
+size_error:
+	fatal("Unexpected/invalid #address-cells/#size-cells in device tree\n");
+}
+
 static void update_fdt(void **dest, struct loader_info *info)
 {
 	int e;
@@ -112,25 +145,7 @@ static void update_fdt(void **dest, struct loader_info *info)
 	if((e = fdt_open_into((void *)info->fdt_start, fdt, FDT_SIZE_MAX)) < 0)
 		goto libfdt_error;
 
-	/*
-	 * Sanity-check address sizes, since addresses and sizes which do
-	 * not take up exactly 4 or 8 bytes are not supported.
-	 */
-	{
-		if(!(p = fdt_getprop(fdt, 0, "#address-cells", &e)))
-			goto libfdt_error;
-		else if(e != 4)
-			goto size_error;
-		addrcells = fdt32_to_cpu(*p);
-		if(!(p = fdt_getprop(fdt, 0, "#size-cells", &e)))
-			goto libfdt_error;
-		else if(e != 4)
-			goto size_error;
-		sizecells = fdt32_to_cpu(*p);
-		if ((addrcells != 1 && addrcells != 2) ||
-		    (sizecells != 1 && sizecells != 2))
-			goto size_error;
-	}
+	_fdt_address_and_size_cells(fdt, &addrcells, &sizecells);
 
 	/*
 	 * Add a memory node, but only if there isn't one already.  If
@@ -225,9 +240,6 @@ no_add_memory:
 		
 libfdt_error:
 	fatal("libfdt: ", fdt_strerror(e), ", while updating device tree\n");
-
-size_error:
-	fatal("Unexpected/invalid #address-cells/#size-cells in device tree\n");
 }
 
 static int is_space(char c)
