@@ -121,7 +121,7 @@ start:
 
 	@ Check CPU nr again
 	mrc	p15, 0, r0, c0, c0, 5		@ MPIDR (ARMv7 only)
-	and	r0, r0, #15			@ CPU number
+	bfc	r0, #24, #8			@ CPU number, taking multicluster into account
 	cmp	r0, #0				@ primary CPU?
 	beq	2f
 
