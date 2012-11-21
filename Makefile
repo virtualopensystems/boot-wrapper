@@ -37,14 +37,14 @@ FDT_OFFSET	:= 0x08000000
 ifneq (,$(findstring USE_INITRD,$(CPPFLAGS)))
 BOOTARGS	:= "console=ttyAMA0 $(BOOTARGS_EXTRA)"
 CHOSEN_NODE	:= chosen {						\
-			bootargs = $(BOOTARGS);				\
+			bootargs = \"$(BOOTARGS)\";			\
 			linux,initrd-start = <$(FILESYSTEM_START)>;	\
 			linux,initrd-end = <$(FILESYSTEM_END)>;		\
 		   };
 else
 BOOTARGS	:= "console=ttyAMA0 root=/dev/nfs nfsroot=10.1.69.68:/work/debootstrap/aarch64,tcp rw ip=dhcp $(BOOTARGS_EXTRA)"
 CHOSEN_NODE	:= chosen {						\
-			bootargs = $(BOOTARGS);				\
+			bootargs = \"$(BOOTARGS)\";			\
 		   };
 endif
 
@@ -72,8 +72,7 @@ ifeq ($(DTC),)
 endif
 
 fdt.dtb: $(FDT_DEPS) Makefile
-	@sed -e 's%/\* chosen \*/%$(CHOSEN_NODE)%' -e 's%$(strip $(FDT_INCL_REGEX))%\1$(dir $(FDT_SRC))\2\3%' $< | \
-	$(DTC) -O dtb -o $@ -
+	( echo "/include/ \"$(FDT_SRC)\"" ; echo "/ { $(CHOSEN_NODE) };" ) | $(DTC) -O dtb -o $@ -
 
 # The filesystem archive might not exist if INITRD is not being used
 .PHONY: all clean $(FILESYSTEM)
