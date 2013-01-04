@@ -100,6 +100,14 @@ start_ns:
 	str	w5, [x4, #0x30]
 
 	/*
+	 * CLCD output site MB
+	 */
+	ldr	x4, =SYSREGS_BASE
+	ldr	w5, =(1 << 31) | (1 << 30) | (7 << 20) | (0 << 16)	// START|WRITE|MUXFPGA|SITE_MB
+	str	wzr, [x4, #0xa0]		// V2M_SYS_CFGDATA
+	str	w5, [x4, #0xa4]			// V2M_SYS_CFGCTRL
+
+	/*
 	 * Primary CPU
 	 */
 	ldr	x0, =dtb			// device tree blob
