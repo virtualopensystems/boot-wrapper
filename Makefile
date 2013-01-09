@@ -35,15 +35,17 @@ FDT_INCL_REGEX	:= \(/include/[[:space:]]*"\)\([^"]\+\)\(".*\)
 FDT_DEPS	:= $(FDT_SRC) $(addprefix $(dir $(FDT_SRC)), $(shell sed -ne 'sq$(strip $(FDT_INCL_REGEX)q\2q p' < $(FDT_SRC))))
 FDT_OFFSET	:= 0x08000000
 
+BOOTARGS_COMMON	:= "console=ttyAMA0 earlyprintk=pl011,0x1c090000 $(BOOTARGS_EXTRA)"
+
 ifneq (,$(findstring USE_INITRD,$(CPPFLAGS)))
-BOOTARGS	:= "console=ttyAMA0 $(BOOTARGS_EXTRA)"
+BOOTARGS	:= "$(BOOTARGS_COMMON)"
 CHOSEN_NODE	:= chosen {						\
 			bootargs = \"$(BOOTARGS)\";			\
 			linux,initrd-start = <$(FILESYSTEM_START)>;	\
 			linux,initrd-end = <$(FILESYSTEM_END)>;		\
 		   };
 else
-BOOTARGS	:= "console=ttyAMA0 root=/dev/nfs nfsroot=10.1.69.68:/work/debootstrap/aarch64,tcp rw ip=dhcp $(BOOTARGS_EXTRA)"
+BOOTARGS	:= "root=/dev/nfs nfsroot=\<serverip\>:\<rootfs\>,tcp rw ip=dhcp $(BOOTARGS_COMMON)"
 CHOSEN_NODE	:= chosen {						\
 			bootargs = \"$(BOOTARGS)\";			\
 		   };
