@@ -4,8 +4,8 @@ Linux boot wrapper with FDT support
 The following files need to be linked into the boot wrapper directory:
 
 dtc			 - point to <linux-build-dir>/scripts/dtc/dtc
-vexpress-v2p-aarch64.dts - point to <linux-src-dir>/arch/arm64/boot/dts/vexpress-v2p-aarch64.dts
-vexpress-v2m-rs1.dtsi	 - point to <linux-src-dir>/arch/arm64/boot/dts/vexpress-v2m-rs1.dtsi
+rtsm_ve-aemv8a.dts       - point to <linux-src-dir>/arch/arm64/boot/dts/rtsm_ve-aemv8a.dts
+rtsm_ve-motherboard.dtsi - point to <linux-src-dir>/arch/arm64/boot/dts/rtsm_ve-motherboard.dtsi
 skeleton.dtsi		 - point to <linux-src-dir>/arch/arm64/boot/dts/skeleton.dtsi
 
 Alternatively, you may specify the paths for dtc and the main dts file
