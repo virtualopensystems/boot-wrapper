@@ -51,7 +51,7 @@ CHOSEN_NODE	:= chosen {						\
 		   };
 endif
 
-CROSS_COMPILE	:= aarch64-none-linux-gnu-
+CROSS_COMPILE	?= aarch64-none-linux-gnu-
 CC		:= $(CROSS_COMPILE)gcc
 LD		:= $(CROSS_COMPILE)ld
 DTC		:= $(if $(wildcard ./dtc), ./dtc, $(shell which dtc))
